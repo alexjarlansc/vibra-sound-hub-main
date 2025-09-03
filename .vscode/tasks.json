@@ -1,0 +1,20 @@
+{
+  // Automatiza entrar na subpasta e rodar npm run dev
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "dev-nomix",
+      "type": "shell",
+      "options": {
+        "cwd": "${workspaceFolder}/vibra-sound-hub-main"
+      },
+      "command": "npm run dev",
+      "problemMatcher": [],
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    }
+  ]
+}

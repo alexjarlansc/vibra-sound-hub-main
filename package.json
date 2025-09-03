@@ -1,0 +1,13 @@
+{
+  "name": "nomix-root",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Wrapper raiz para facilitar comandos sem precisar entrar na subpasta",
+  "scripts": {
+    "setup": "npm --prefix vibra-sound-hub-main install",
+    "dev": "npm --prefix vibra-sound-hub-main run dev",
+    "build": "npm --prefix vibra-sound-hub-main run build",
+    "preview": "npm --prefix vibra-sound-hub-main run preview",
+    "lint": "npm --prefix vibra-sound-hub-main run lint"
+  }
+}

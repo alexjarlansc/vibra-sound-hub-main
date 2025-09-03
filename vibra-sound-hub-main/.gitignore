@@ -1,0 +1,58 @@
+# Node / Vite / TypeScript
+node_modules/
+dist/
+.vite/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Env / credenciais locais
+.env
+.env.*
+!.env.example
+
+# IDE / SO
+.DS_Store
+Thumbs.db
+*.swp
+.vscode/*
+!.vscode/tasks.json
+!.vscode/launch.json
+
+# Coverage / testes
+coverage/
+
+# Supabase local
+supabase/.branches
+supabase/.temp
+
+# Misc
+bun.lockb
+*.tar.gz
+*.zip# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
