@@ -1,4 +1,4 @@
-import { Play, Pause, SkipBack, SkipForward, Volume2, Shuffle, Repeat, Heart, ListMusic } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Volume2, Heart, ListMusic } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { usePlayer } from '@/context/PlayerContext';
@@ -38,32 +38,22 @@ const MusicPlayer = () => {
             </Button>
           </div>
 
-          {/* Player Controls */}
-          <div className="flex flex-col items-center space-y-2 flex-2 px-4 md:px-8">
-            <div className="flex items-center space-x-4 md:space-x-6">
-              <Button size="icon" variant="ghost" className="hidden md:inline-flex text-muted-foreground hover:text-foreground p-2 h-9 w-9">
-                <Shuffle className="h-4 w-4" />
-              </Button>
-              <Button size="icon" variant="ghost" className="text-foreground hover:bg-muted p-2 h-9 w-9">
+          {/* Player Controls simplificados */}
+          <div className="flex flex-col items-center space-y-1 flex-2 px-4 md:px-6">
+            <div className="flex items-center space-x-4 md:space-x-5">
+              <Button size="icon" variant="ghost" className="text-foreground hover:bg-muted p-2 h-9 w-9" onClick={prev} disabled={!queue.length} aria-label="Anterior">
                 <SkipBack className="h-5 w-5" />
               </Button>
               <Button
                 size="icon"
-                className="bg-primary hover:bg-primary/90 text-primary-foreground w-12 h-12 md:w-12 md:h-12 rounded-full shadow-lg"
+                className="w-11 h-11 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg"
                 onClick={toggle}
                 aria-label={playing? 'Pausar':'Tocar'}
               >
-                {playing ? (
-                  <Pause className="h-5 w-5" />
-                ) : (
-                  <Play className="h-5 w-5 ml-0.5" />
-                )}
+                {playing ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
               </Button>
-              <Button size="icon" variant="ghost" className="text-foreground hover:bg-muted p-2 h-9 w-9" onClick={next} disabled={!queue.length}>
+              <Button size="icon" variant="ghost" className="text-foreground hover:bg-muted p-2 h-9 w-9" onClick={next} disabled={!queue.length} aria-label="Próxima">
                 <SkipForward className="h-5 w-5" />
-              </Button>
-              <Button size="icon" variant="ghost" className="hidden md:inline-flex text-muted-foreground hover:text-foreground p-2 h-9 w-9">
-                <Repeat className="h-4 w-4" />
               </Button>
             </div>
             <div className="flex items-center space-x-2 md:space-x-3 w-full max-w-lg">
