@@ -12,6 +12,7 @@ const TopMusics = lazy(()=> import('./pages/TopMusics'));
 const Profile = lazy(()=> import('./pages/Profile'));
 const Favorites = lazy(()=> import('./pages/Favorites'));
 const Playlists = lazy(()=> import('./pages/Playlists'));
+const AdminVerifications = lazy(()=> import('./pages/AdminVerifications'));
 import RootLayout from "@/layouts/RootLayout";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ const App = () => (
             <Route path="/perfil" element={<Suspense fallback={<div className='p-10 text-center text-sm text-muted-foreground'>Carregando...</div>}><Profile /></Suspense>} />
             <Route path="/favoritos" element={<Suspense fallback={<div className='p-10 text-center text-sm text-muted-foreground'>Carregando...</div>}><Favorites /></Suspense>} />
             <Route path="/playlists" element={<Suspense fallback={<div className='p-10 text-center text-sm text-muted-foreground'>Carregando...</div>}><Playlists /></Suspense>} />
+            <Route path="/admin/verification" element={<Suspense fallback={<div className='p-10 text-center text-sm text-muted-foreground'>Carregando...</div>}><AdminVerifications /></Suspense>} />
           </Route>
           <Route path="*" element={<Suspense fallback={<div className='p-10 text-center text-sm text-muted-foreground'>Carregando...</div>}><NotFound /></Suspense>} />
   </Routes>
