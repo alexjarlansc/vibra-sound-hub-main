@@ -78,6 +78,10 @@ export const UploadMusicModal: React.FC<UploadMusicModalProps> = ({ open, onOpen
   // Recupera token de sessão autenticada para políticas RLS de storage
   const { data: sessionData } = await supabase.auth.getSession();
   const accessToken = sessionData.session?.access_token;
+      if(import.meta.env.DEV){ console.debug('[UploadMusicModal] session token present?', !!accessToken, accessToken?.slice(0,16)+'...'); }
+      if(!accessToken){
+        throw new Error('Sessão não encontrada para upload autenticado. Faça login novamente e tente de novo.');
+      }
   const BUCKET = import.meta.env.VITE_SUPABASE_MUSIC_BUCKET || import.meta.env.VITE_SUPABASE_BUCKET_MUSIC || 'music';
   // cria album
   const albumPayload: TablesInsert<'albums'> = { name: albumName, genre: genre || null, cover_url: null, user_id: userId || null };
