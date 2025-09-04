@@ -1,4 +1,4 @@
-import { Play, Heart, MoreHorizontal } from "lucide-react";
+import { Play, Heart, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -15,10 +15,12 @@ interface MusicCardProps {
   onDownload?: () => void;
   liked?: boolean;
   likeCount?: number;
+  downloadsCount?: number;
+  playsCount?: number;
   disableActions?: boolean;
 }
 
-const MusicCard = ({ title, artist, image, colorVariant, size = "medium", onClick, onPlay, onLike, onDownload, liked, likeCount, disableActions }: MusicCardProps) => {
+const MusicCard = ({ title, artist, image, colorVariant, size = "medium", onClick, onPlay, onLike, onDownload, liked, likeCount, downloadsCount, playsCount, disableActions }: MusicCardProps) => {
   const sizeClasses = {
     small: "w-40 h-40",
     medium: "w-48 h-48", 
@@ -35,6 +37,11 @@ const MusicCard = ({ title, artist, image, colorVariant, size = "medium", onClic
   <Card onClick={onClick} className="group cursor-pointer transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:shadow-primary/10 overflow-hidden bg-card/80 backdrop-blur-sm border-border/50">
       <CardContent className="p-0">
         <div className={`${sizeClasses[size]} relative overflow-hidden`}>
+          {/* Badges topo */}
+          <div className="absolute top-2 left-2 z-20 flex flex-col gap-1 text-[10px] font-medium">
+            {typeof playsCount === 'number' && <span className="px-2 py-0.5 rounded-full bg-black/50 backdrop-blur text-white/90">▶ {playsCount}</span>}
+            {typeof downloadsCount === 'number' && <span className="px-2 py-0.5 rounded-full bg-black/50 backdrop-blur text-white/90">⬇ {downloadsCount}</span>}
+          </div>
           {image ? (
             <img
               src={image}
@@ -89,7 +96,7 @@ const MusicCard = ({ title, artist, image, colorVariant, size = "medium", onClic
                 className="text-white hover:bg-white/20 rounded-full w-10 h-10 p-0"
                 aria-label="Download"
               >
-                <MoreHorizontal className="h-4 w-4" />
+                <Download className="h-4 w-4" />
               </Button>
             </div>
           </div>

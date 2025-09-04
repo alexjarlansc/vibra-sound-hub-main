@@ -1,15 +1,21 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import MusicCard from '@/components/MusicCard';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Music2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useTrendingMusics } from '@/hooks/useTrendingMusics';
+import { useTrackFavorites } from '@/hooks/useTrackFavorites';
+import { useRegisterPlay } from '@/hooks/useRegisterPlay';
+import { useToast } from '@/hooks/use-toast';
 
 /* Componente para Músicas em Alta (Trending) */
 const TrendingMusicsSection = () => {
   const [openAll, setOpenAll] = useState(false);
-  const { data, loading } = useTrendingMusics({ limit: 12 });
+  const { data, loading, reload } = useTrendingMusics({ limit: 12 });
+  const { isLiked, toggleTrackLike } = useTrackFavorites();
+  const { registerTrackPlay } = useRegisterPlay();
+  const { toast } = useToast();
 
   // fallback fake data caso view não exista ainda
   interface FallbackTrack { title: string; artist: string; }
@@ -35,9 +41,12 @@ const TrendingMusicsSection = () => {
   const top12: TopItem[] = (data.length? data.map<TopItem>((t,i)=>({
     id: t.id,
     title: t.name,
-    artist: 'Artista', // placeholder até ter relação artista
+    artist: 'Artista',
     colorVariant: ((i%6)+1) as 1|2|3|4|5|6
   })) : fallback.slice(0,12).map<TopItem>((f,i)=>({ ...f, colorVariant: ((i%6)+1) as 1|2|3|4|5|6 })));
+
+  const handlePlay = useCallback((trackId?:string)=>{ if(trackId){ registerTrackPlay(trackId); toast({ title: 'Reproduzindo (demo)' }); } },[registerTrackPlay, toast]);
+  const handleLike = useCallback((trackId?:string)=>{ if(trackId) toggleTrackLike(trackId); },[toggleTrackLike]);
 
   return (
     <div className="mt-16">
@@ -52,7 +61,7 @@ const TrendingMusicsSection = () => {
         </Button>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-        {top12.map((track, index)=>(
+    {top12.map((track, index)=>(
           <MusicCard
             key={track.id || index}
             id={track.id}
@@ -60,7 +69,9 @@ const TrendingMusicsSection = () => {
             artist={track.artist}
             colorVariant={track.colorVariant}
             size="medium"
-            disableActions
+      liked={isLiked(track.id)}
+      onLike={()=> handleLike(track.id)}
+      onPlay={()=> handlePlay(track.id)}
           />
         ))}
       </div>
@@ -82,14 +93,15 @@ const TrendingMusicsSection = () => {
                       }))
                     )
                   : fallback.map<Item>((f,i2)=>({ ...f, colorVariant: ((i2%6)+1) as 1|2|3|4|5|6 }));
-                return full.slice(0,100).map((t,i)=>(
+        return full.slice(0,100).map((t,i)=>(
                   <MusicCard
                     key={t.id ?? i}
                     title={t.title}
                     artist={t.artist}
                     colorVariant={t.colorVariant}
                     size="small"
-                    disableActions
+          liked={isLiked(t.id)}
+          onLike={()=> handleLike(t.id)}
                   />
                 ));
               })()}

@@ -7,6 +7,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTrendingAlbums } from "@/hooks/useTrendingAlbums";
 import { useTrendingTracks } from "@/hooks/useTrendingTracks";
+import { useFavoriteAlbums } from "@/hooks/useFavorites";
+import { useTrackFavorites } from "@/hooks/useTrackFavorites";
+import { useRegisterPlay } from "@/hooks/useRegisterPlay";
+import { enqueueMetric } from "@/lib/metricsQueue";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -17,6 +21,8 @@ const FeaturedSection = () => {
   const [openTrendingAll, setOpenTrendingAll] = useState(false);
   const { data: trendingData, loading: loadingTrending, reload } = useTrendingAlbums({ limit: 12 });
   const { data: trendingTracks, loading: loadingTracks } = useTrendingTracks({ limit: 12 });
+  const { isLiked: isAlbumLiked, toggleLike: toggleAlbumLike } = useFavoriteAlbums();
+  const { isLiked: isTrackLiked, toggleTrackLike } = useTrackFavorites();
   const { userId } = useAuth();
   const { toast } = useToast();
   type ColorVariant = 1|2|3|4|5|6;
@@ -39,27 +45,37 @@ const FeaturedSection = () => {
     return error;
   };
 
-  const handleLike = useCallback(async (albumId?:string)=>{
-    if(!albumId) return;
-    if(!userId){ toast({ title: 'Faça login para curtir.' }); return; }
-    const error = await safeRpc('toggle_album_like', { p_album: albumId });
-    if(error){ toast({ title: 'Erro curtida', description: error.message, variant: 'destructive'}); return; }
-    reload();
-  },[userId, toast, reload]);
+  const trackIdSet = useMemo(()=> new Set((trendingTracks||[]).map(t=> t.id).filter(Boolean)), [trendingTracks]);
 
-  const handleDownload = useCallback(async (albumId?:string)=>{
-    if(!albumId) return;
-    const error = await safeRpc('register_album_download', { p_album: albumId });
-    if(error){ toast({ title: 'Erro download', description: error.message, variant: 'destructive'}); return; }
+  const handleLike = useCallback(async (id?:string)=>{
+    if(!id) return;
+    if(!userId){ toast({ title: 'Faça login para curtir.' }); return; }
+    // Decide se é track ou álbum pelo que temos carregado
+    if(trackIdSet.has(id)) {
+      toggleTrackLike(id);
+    } else {
+      toggleAlbumLike(id);
+    }
+  },[userId, toast, trackIdSet, toggleTrackLike, toggleAlbumLike]);
+
+  const handleDownload = useCallback(async (id?:string)=>{
+    if(!id) return;
+    enqueueMetric({ type: trackIdSet.has(id) ? 'track_download' : 'album_download', id, ts: Date.now() });
+    toast({ title: 'Download registrado (fila)' });
     reload();
-  },[reload, toast]);
+  },[reload, toast, trackIdSet]);
 
   const { play } = usePlayer();
-  const handlePlay = useCallback(async (albumId?:string)=>{
-    // Sem URL real aqui (dados trending mock). Apenas feedback.
-    if(!albumId){ toast({ title: 'Sem ID para tocar.' }); return; }
-    toast({ title: 'Sem prévia disponível ainda.' });
-  },[toast]);
+  const { registerTrackPlay } = useRegisterPlay();
+  const handlePlay = useCallback(async (id?:string)=>{
+    if(!id){ toast({ title: 'Sem ID para tocar.' }); return; }
+    // Decide se é track ou álbum; se track registra play
+    if(trackIdSet.has(id)) {
+      registerTrackPlay(id);
+    }
+    // Placeholder player real
+    toast({ title: 'Reprodução iniciada (demo)' });
+  },[toast, trackIdSet, registerTrackPlay]);
 
   interface TrackLike { id?: string; name?: string; title?: string; artist?: string; likes_count?: number; }
 
@@ -102,10 +118,13 @@ const FeaturedSection = () => {
                     colorVariant={colorVariant}
                     size="medium"
                     onClick={()=> setOpenAlbum({ id: item.id, title, artist: item.artist || 'Artista' })}
+                    liked={isTrackLiked(item.id) || isAlbumLiked(item.id)}
                     onLike={()=> handleLike(item.id)}
                     onDownload={()=> handleDownload(item.id)}
                     onPlay={()=> handlePlay(item.id)}
                     likeCount={item.likes_count}
+                    downloadsCount={(item as any).downloads_count}
+                    playsCount={(item as any).plays_count}
                   />
                 );
               })}

@@ -44,6 +44,30 @@ export type Database = {
         Update: { id?: string; created_at?: string; track_id?: string; user_id?: string | null };
         Relationships: [];
       };
+      track_likes: {
+        Row: { id: string; created_at: string; track_id: string; user_id: string };
+        Insert: { id?: string; created_at?: string; track_id: string; user_id: string };
+        Update: { id?: string; created_at?: string; track_id?: string; user_id?: string };
+        Relationships: [];
+      };
+      playlists: {
+        Row: { id: string; created_at: string; name: string; description: string | null; cover_url: string | null; user_id: string };
+        Insert: { id?: string; created_at?: string; name: string; description?: string | null; cover_url?: string | null; user_id: string };
+        Update: { id?: string; created_at?: string; name?: string; description?: string | null; cover_url?: string | null; user_id?: string };
+        Relationships: [];
+      };
+      playlist_tracks: {
+        Row: { id: string; created_at: string; playlist_id: string; track_id: string; position: number | null };
+        Insert: { id?: string; created_at?: string; playlist_id: string; track_id: string; position?: number | null };
+        Update: { id?: string; created_at?: string; playlist_id?: string; track_id?: string; position?: number | null };
+        Relationships: [];
+      };
+      track_downloads: {
+        Row: { id: string; created_at: string; track_id: string; user_id: string | null };
+        Insert: { id?: string; created_at?: string; track_id: string; user_id?: string | null };
+        Update: { id?: string; created_at?: string; track_id?: string; user_id?: string | null };
+        Relationships: [];
+      };
     }
     Views: {
       album_trending_view: {
@@ -54,7 +78,9 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+  toggle_album_like: { Args: { p_album: string }; Returns: void };
+  register_album_download: { Args: { p_album: string }; Returns: void };
+  register_track_download: { Args: { p_track: string }; Returns: void };
     }
     Enums: {
       [_ in never]: never

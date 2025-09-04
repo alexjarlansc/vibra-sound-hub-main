@@ -36,12 +36,10 @@ const Profile = () => {
           <div className="flex-1 w-full">
             <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
               <div>
-                <h1 className="text-3xl font-bold tracking-tight">{displayName}</h1>
+                <h1 className="text-3xl font-bold tracking-tight text-foreground">{displayName}</h1>
                 <p className="text-sm text-muted-foreground mt-1">Divulgador</p>
               </div>
-              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-600/90 text-white rounded-full px-5 text-xs font-medium">
-                Tenha um perfil verificado
-              </Button>
+              {/* Botão de verificação removido conforme solicitação */}
             </div>
             {/* Abas */}
             <Tabs defaultValue="cds" className="mt-6">
@@ -64,16 +62,17 @@ const Profile = () => {
         </div>
 
         {/* Conteúdo principal */}
-        <div className="mt-10 grid grid-cols-1 lg:grid-cols-3 gap-10">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
           <div className="space-y-6 lg:col-span-2">
             {/* Lista itens (placeholder) */}
-            <div className="panel p-6">
+            <div className="panel p-6 mt-8 lg:mt-12">
               <h2 className="font-semibold mb-4">Uploads Recentes</h2>
               <p className="text-sm text-muted-foreground">Nada para mostrar ainda.</p>
             </div>
           </div>
-          <aside className="space-y-6">
-            <div className="panel p-6">
+          <aside className="space-y-6 -mt-20 lg:-mt-40">
+            <div className="panel pt-0 pb-6 px-6">
+              <h2 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase mb-4">Estatísticas</h2>
               <div className="grid grid-cols-2 gap-6 text-center text-sm">
                 <div>
                   <p className="text-2xl font-bold">{stats.plays}</p>
