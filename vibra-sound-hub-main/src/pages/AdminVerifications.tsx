@@ -18,6 +18,10 @@ const AdminVerifications: React.FC = () => {
   const [filter, setFilter] = useState('');
   const [detail, setDetail] = useState<VerificationRow|null>(null);
   const [acting, setActing] = useState<string|null>(null);
+  const [checkingRole, setCheckingRole] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [noAdminExists, setNoAdminExists] = useState<boolean|null>(null);
+  const [promoting, setPromoting] = useState(false);
 
   const rpc = supabase as unknown as { rpc: (fn:string, params?:Record<string,unknown>)=>Promise<{ data:any; error:any }> };
 
@@ -35,7 +39,60 @@ const AdminVerifications: React.FC = () => {
     finally { setLoading(false); }
   },[toast]);
 
-  useEffect(()=>{ load(); },[load]);
+  useEffect(()=>{
+    if(!userId){ setCheckingRole(false); return; }
+    let canceled = false;
+    (async()=>{
+      try {
+  const { data, error } = await supabase.from('profiles').select('role').eq('id', userId).maybeSingle();
+  const role = (data as { role?: string } | null)?.role;
+  if(!canceled){ setIsAdmin(!error && role === 'admin'); }
+      } catch { if(!canceled){ setIsAdmin(false); } }
+      finally { if(!canceled) setCheckingRole(false); }
+    })();
+    return ()=>{ canceled=true; };
+  },[userId]);
+
+  // Verifica se já existe algum admin (para habilitar bootstrap)
+  useEffect(()=>{
+    if(checkingRole) return; // espera fim da checagem principal
+    if(isAdmin){ setNoAdminExists(false); return; }
+    let canceled = false;
+    (async()=>{
+      try {
+        const { data, error } = await supabase.from('profiles').select('id').eq('role','admin').limit(1);
+        if(!canceled){
+          if(error) { setNoAdminExists(false); }
+          else { setNoAdminExists(!data || data.length === 0); }
+        }
+      } catch { if(!canceled) setNoAdminExists(false); }
+    })();
+    return ()=>{ canceled = true; };
+  },[checkingRole, isAdmin]);
+
+  const handlePromote = useCallback(async()=>{
+    if(promoting) return;
+    setPromoting(true);
+    try {
+      const { data, error } = await (supabase.rpc('bootstrap_admin') as any);
+      if(error) throw error;
+      if(data === 'promoted'){
+        toast({ title:'Agora você é admin.' });
+        // Re-checar role
+        const { data: me } = await supabase.from('profiles').select('role').eq('id', userId).maybeSingle();
+        const role = (me as { role?: string } | null)?.role;
+        setIsAdmin(role === 'admin');
+        setNoAdminExists(false);
+      } else if(data === 'admin_already_exists'){
+        toast({ title:'Já existe admin', description:'Recarregando...' });
+        setNoAdminExists(false);
+      }
+    } catch(e:any){
+      toast({ title:'Falha ao promover', description:e.message, variant:'destructive' });
+    } finally { setPromoting(false); }
+  },[promoting, supabase, toast, userId]);
+
+  useEffect(()=>{ if(isAdmin) load(); },[isAdmin, load]);
 
   const act = useCallback(async (row:VerificationRow, status:'approved'|'rejected')=>{
     if(acting) return; setActing(row.id);
@@ -60,7 +117,29 @@ const AdminVerifications: React.FC = () => {
 
   return (
     <div className="container mx-auto px-6 py-10">
-      <div className="flex items-center justify-between mb-8">
+      {checkingRole && (
+        <div className="py-20 text-center text-sm text-muted-foreground flex flex-col items-center gap-3">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          Verificando permissões...
+        </div>
+      )}
+      {!checkingRole && !isAdmin && (
+        <div className="py-24 text-center">
+          <p className="text-lg font-semibold mb-2">Acesso restrito</p>
+          <p className="text-sm text-muted-foreground">Esta área é exclusiva para administradores.</p>
+          {noAdminExists && (
+            <div className="mt-8 flex flex-col items-center gap-3">
+              <p className="text-xs text-muted-foreground max-w-xs">Nenhum administrador encontrado. Você pode tornar-se o primeiro admin.</p>
+              <Button disabled={promoting} onClick={handlePromote} className="animate-in fade-in" variant="default">
+                {promoting ? <Loader2 className="h-4 w-4 animate-spin"/> : 'Tornar-me Admin'}
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+  {!checkingRole && isAdmin && (
+  <>
+  <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">Aprovação de Verificação <Badge variant="secondary" className="text-xs">Admin</Badge></h1>
           <p className="text-sm text-muted-foreground">Gerencie solicitações de selo verificado.</p>
@@ -74,7 +153,7 @@ const AdminVerifications: React.FC = () => {
         </div>
       </div>
 
-      <div className="border rounded-md overflow-hidden">
+  <div className="border rounded-md overflow-hidden hidden md:block" style={{ display: (!checkingRole && isAdmin)? undefined : 'none' }}>
         <table className="w-full text-sm">
           <thead className="bg-muted/50">
             <tr>
@@ -122,7 +201,7 @@ const AdminVerifications: React.FC = () => {
         </table>
       </div>
 
-      <Dialog open={!!detail} onOpenChange={(o)=> !o && setDetail(null)}>
+  <Dialog open={!!detail && isAdmin} onOpenChange={(o)=> !o && setDetail(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Solicitação</DialogTitle>
@@ -161,6 +240,8 @@ const AdminVerifications: React.FC = () => {
           )}
         </DialogContent>
       </Dialog>
+  </>
+  )}
     </div>
   );
 };
