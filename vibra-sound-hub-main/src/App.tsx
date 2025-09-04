@@ -3,11 +3,12 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
-import MyAlbums from "./pages/MyAlbums";
-import TopMusics from "./pages/TopMusics";
-import Profile from "./pages/Profile";
+import React, { Suspense, lazy } from 'react';
+const Index = lazy(()=> import('./pages/Index'));
+const NotFound = lazy(()=> import('./pages/NotFound'));
+const MyAlbums = lazy(()=> import('./pages/MyAlbums'));
+const TopMusics = lazy(()=> import('./pages/TopMusics'));
+const Profile = lazy(()=> import('./pages/Profile'));
 import RootLayout from "@/layouts/RootLayout";
 
 const queryClient = new QueryClient();
@@ -20,12 +21,12 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route element={<RootLayout />}> {/* Rotas que compartilham header/player */}
-            <Route path="/" element={<Index />} />
-            <Route path="/meus-albuns" element={<MyAlbums />} />
-            <Route path="/top-musicas" element={<TopMusics />} />
-            <Route path="/perfil" element={<Profile />} />
+            <Route path="/" element={<Suspense fallback={<div className='p-10 text-center text-sm text-muted-foreground'>Carregando...</div>}><Index /></Suspense>} />
+            <Route path="/meus-albuns" element={<Suspense fallback={<div className='p-10 text-center text-sm text-muted-foreground'>Carregando...</div>}><MyAlbums /></Suspense>} />
+            <Route path="/top-musicas" element={<Suspense fallback={<div className='p-10 text-center text-sm text-muted-foreground'>Carregando...</div>}><TopMusics /></Suspense>} />
+            <Route path="/perfil" element={<Suspense fallback={<div className='p-10 text-center text-sm text-muted-foreground'>Carregando...</div>}><Profile /></Suspense>} />
           </Route>
-          <Route path="*" element={<NotFound />} />
+          <Route path="*" element={<Suspense fallback={<div className='p-10 text-center text-sm text-muted-foreground'>Carregando...</div>}><NotFound /></Suspense>} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>

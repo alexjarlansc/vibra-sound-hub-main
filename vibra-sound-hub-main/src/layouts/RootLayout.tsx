@@ -18,7 +18,7 @@ export default function RootLayout(){
           <Navigation />
         </div>
       )}
-      <main className={`flex-1 pb-36 ${showNav ? 'pt-6' : ''}`}>
+  <main className={`flex-1 pb-40 sm:pb-36 ${showNav ? 'pt-4 sm:pt-6' : ''}`}>
         {/* bottom padding para player; top suave */}
         <Outlet />
       </main>

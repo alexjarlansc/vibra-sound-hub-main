@@ -65,7 +65,8 @@ const SidebarProvider = React.forwardRef<
     },
     ref
   ) => {
-    const isMobile = useIsMobile()
+    const isMobileInfo = useIsMobile()
+    const isMobile = isMobileInfo.isMobile
     const [openMobile, setOpenMobile] = React.useState(false)
 
     // This is the internal state of the sidebar.

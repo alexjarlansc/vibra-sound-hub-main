@@ -45,7 +45,7 @@ const Header = () => {
   return (
   <header className="sticky top-0 z-50 supports-[backdrop-filter]:bg-background/25 bg-background/60 backdrop-blur-md supports-[backdrop-filter]:backdrop-blur-xl border-b border-white/10 shadow-[0_2px_18px_-6px_rgba(0,0,0,0.25)] relative before:absolute before:inset-0 before:pointer-events-none before:bg-gradient-to-br before:from-white/5 before:via-white/2 before:to-transparent after:absolute after:inset-0 after:pointer-events-none after:bg-[radial-gradient(circle_at_80%_-10%,rgba(255,255,255,0.18),transparent_60%)]">
   <div className="container mx-auto pr-6 pl-2 sm:pl-4 relative z-10">
-  <div className="flex items-center justify-between h-28">
+  <div className="flex items-center justify-between h-24 sm:h-28">
           {/* Logo */}
           <div className="flex items-center space-x-6">
             <div className="flex items-center -ml-1 sm:-ml-2">
@@ -73,7 +73,7 @@ const Header = () => {
           </div>
 
           {/* Search Bar */}
-          <div className="flex-1 max-w-xl mx-8">
+          <div className="flex-1 max-w-xl mx-4 sm:mx-8 hidden md:block">
             <div className="relative">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
               <Input
@@ -84,7 +84,7 @@ const Header = () => {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 sm:space-x-3">
             <Button variant="ghost" size="sm" className="hidden lg:flex hover:bg-muted/50" onClick={()=>{
               if(!userId){
                 toast({ title: 'Faça login para enviar.' });
@@ -113,7 +113,7 @@ const Header = () => {
                 </span>
               </Button>
             ) : null}
-            <div className="hidden md:flex items-center space-x-2 pr-2 cursor-pointer" onClick={()=> userId ? setOpenUserMenu(true) : setShowLogin(true)}>
+            <div className="hidden md:flex items-center space-x-2 pr-2 cursor-pointer select-none" onClick={()=> userId ? setOpenUserMenu(true) : setShowLogin(true)}>
               <Avatar className="h-10 w-10 ring-1 ring-border">
                 {user?.user_metadata?.avatar_url && (
                   <AvatarImage src={user.user_metadata.avatar_url} />
@@ -135,7 +135,7 @@ const Header = () => {
                 )}
               </div>
             </div>
-            <Button variant="ghost" size="sm" className="md:hidden p-2">
+            <Button variant="ghost" size="icon" className="md:hidden p-2 h-9 w-9" aria-label="Menu" onClick={()=> setOpenUserMenu(true)}>
               <Menu className="h-5 w-5" />
             </Button>
           </div>
