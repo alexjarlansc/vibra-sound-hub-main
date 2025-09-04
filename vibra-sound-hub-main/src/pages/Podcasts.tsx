@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { usePlayer } from '@/context/PlayerContext';
-import { Podcast, Loader2 } from 'lucide-react';
+import { Podcast, Loader2, Play, Pause } from 'lucide-react';
 
 interface PodcastEpisode { id: string; title: string; description: string; audio_url: string; podcast: string; published_at: string; duration?: number; }
 
@@ -36,16 +36,20 @@ const Podcasts: React.FC = () => {
       )}
       <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
         {episodes.map(ep => (
-          <div
-            key={ep.id}
-            onClick={()=> isCurrent(ep) ? toggle() : play({ id: ep.id, title: ep.title, artist: ep.podcast, url: ep.audio_url })}
-            className={`group relative rounded-xl border cursor-pointer select-none bg-gradient-to-br from-background/60 to-background/20 backdrop-blur-sm p-5 shadow-sm hover:shadow-md transition ${isCurrent(ep) ? 'border-primary/70 ring-2 ring-primary/30' : 'border-border/60'}`}
-            aria-label={isCurrent(ep) ? (playing ? 'Pausar episódio' : 'Retomar episódio') : 'Reproduzir episódio'}
-          >
+          <div key={ep.id} className={`group relative rounded-xl border bg-gradient-to-br from-background/60 to-background/20 backdrop-blur-sm p-5 shadow-sm hover:shadow-md transition ${isCurrent(ep) ? 'border-primary/70 ring-2 ring-primary/30' : 'border-border/60'}`}> 
             <div className="flex items-start gap-4">
-              <div className={`mt-1 flex items-center justify-center rounded-full w-12 h-12 shrink-0 transition ${isCurrent(ep)? 'bg-primary text-primary-foreground shadow-inner animate-pulse' : 'bg-primary/10 text-primary group-hover:bg-primary/20'}`}> 
-                <Podcast className="h-6 w-6" />
-              </div>
+              <button
+                onClick={()=> isCurrent(ep) ? toggle() : play({ id: ep.id, title: ep.title, artist: ep.podcast, url: ep.audio_url })}
+                className={`mt-1 inline-flex items-center justify-center rounded-full w-12 h-12 shrink-0 transition relative overflow-hidden group ${isCurrent(ep)? 'bg-primary text-primary-foreground shadow-lg hover:bg-primary/90' : 'bg-primary/10 text-primary hover:bg-primary/20'}`}
+                aria-label={isCurrent(ep) ? (playing ? 'Pausar episódio' : 'Retomar episódio') : 'Reproduzir episódio'}
+              >
+                <span className="absolute inset-0 opacity-0 group-hover:opacity-10 bg-white transition-opacity" />
+                {isCurrent(ep) ? (
+                  playing ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6 ml-0.5" />
+                ) : (
+                  <Play className="h-6 w-6 ml-0.5" />
+                )}
+              </button>
               <div className="flex-1">
                 <h3 className="font-semibold leading-tight mb-1 group-hover:text-primary transition-colors line-clamp-2">{ep.title}</h3>
                 <p className="text-xs text-muted-foreground mb-2 line-clamp-3">{ep.description}</p>
