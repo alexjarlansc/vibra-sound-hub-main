@@ -116,7 +116,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ open, onOp
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input autoFocus placeholder="Músicas, playlists, álbuns, perfis..." value={query} onChange={e=>setQuery(e.target.value)} className="pl-9 h-10 rounded-md bg-muted/50" />
           </div>
-          <ScrollArea className="max-h-80 pr-2">
+          <ScrollArea className="h-80 pr-2">
             {loading && <div className="text-xs text-muted-foreground py-6 text-center">Buscando...</div>}
             {!loading && !results.length && debounced.trim() && (
               <div className="text-xs text-muted-foreground py-6 text-center">Nenhum resultado</div>
