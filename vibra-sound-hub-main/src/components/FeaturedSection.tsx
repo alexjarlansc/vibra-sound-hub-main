@@ -2,6 +2,7 @@ import MusicCard from "./MusicCard";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, TrendingUp } from "lucide-react";
 import { useState, useMemo, useCallback } from "react";
+import { usePlayer } from '@/context/PlayerContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTrendingAlbums } from "@/hooks/useTrendingAlbums";
@@ -53,9 +54,11 @@ const FeaturedSection = () => {
     reload();
   },[reload, toast]);
 
+  const { play } = usePlayer();
   const handlePlay = useCallback(async (albumId?:string)=>{
-    // sem trackId real aqui; somente feedback visual
-    toast({ title: 'Play simulado (integre player real depois).' });
+    // Sem URL real aqui (dados trending mock). Apenas feedback.
+    if(!albumId){ toast({ title: 'Sem ID para tocar.' }); return; }
+    toast({ title: 'Sem prévia disponível ainda.' });
   },[toast]);
 
   interface TrackLike { id?: string; name?: string; title?: string; artist?: string; likes_count?: number; }

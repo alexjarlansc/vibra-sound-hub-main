@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import React, { Suspense, lazy } from 'react';
+import { PlayerProvider } from '@/context/PlayerContext';
 const Index = lazy(()=> import('./pages/Index'));
 const NotFound = lazy(()=> import('./pages/NotFound'));
 const MyAlbums = lazy(()=> import('./pages/MyAlbums'));
@@ -19,6 +20,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <PlayerProvider>
         <Routes>
           <Route element={<RootLayout />}> {/* Rotas que compartilham header/player */}
             <Route path="/" element={<Suspense fallback={<div className='p-10 text-center text-sm text-muted-foreground'>Carregando...</div>}><Index /></Suspense>} />
@@ -27,7 +29,8 @@ const App = () => (
             <Route path="/perfil" element={<Suspense fallback={<div className='p-10 text-center text-sm text-muted-foreground'>Carregando...</div>}><Profile /></Suspense>} />
           </Route>
           <Route path="*" element={<Suspense fallback={<div className='p-10 text-center text-sm text-muted-foreground'>Carregando...</div>}><NotFound /></Suspense>} />
-        </Routes>
+  </Routes>
+  </PlayerProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

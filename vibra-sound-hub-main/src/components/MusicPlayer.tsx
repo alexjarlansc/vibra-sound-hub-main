@@ -1,12 +1,16 @@
 import { Play, Pause, SkipBack, SkipForward, Volume2, Shuffle, Repeat, Heart, ListMusic } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { useState } from "react";
+import { usePlayer } from '@/context/PlayerContext';
+import { useCallback } from 'react';
 
 const MusicPlayer = () => {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [progress, setProgress] = useState([30]);
-  const [volume, setVolume] = useState([80]);
+  const { current, playing, toggle, next, prev, progress, duration, seek, volume, setVolume, queue } = usePlayer();
+
+  const pct = progress * 100;
+  const handleSeek = useCallback((vals:number[])=>{ const v = vals[0]; seek(v/100); }, [seek]);
+  const handleVolume = useCallback((vals:number[])=>{ const v = vals[0]; setVolume(v/100); }, [setVolume]);
+  const volPct = Math.round(volume*100);
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50">
@@ -44,16 +48,16 @@ const MusicPlayer = () => {
               <Button
                 size="icon"
                 className="bg-primary hover:bg-primary/90 text-primary-foreground w-12 h-12 md:w-12 md:h-12 rounded-full shadow-lg"
-                onClick={() => setIsPlaying(!isPlaying)}
-                aria-label={isPlaying? 'Pausar':'Tocar'}
+                onClick={toggle}
+                aria-label={playing? 'Pausar':'Tocar'}
               >
-                {isPlaying ? (
+                {playing ? (
                   <Pause className="h-5 w-5" />
                 ) : (
                   <Play className="h-5 w-5 ml-0.5" />
                 )}
               </Button>
-              <Button size="icon" variant="ghost" className="text-foreground hover:bg-muted p-2 h-9 w-9">
+              <Button size="icon" variant="ghost" className="text-foreground hover:bg-muted p-2 h-9 w-9" onClick={next} disabled={!queue.length}>
                 <SkipForward className="h-5 w-5" />
               </Button>
               <Button size="icon" variant="ghost" className="hidden md:inline-flex text-muted-foreground hover:text-foreground p-2 h-9 w-9">
@@ -62,14 +66,7 @@ const MusicPlayer = () => {
             </div>
             <div className="flex items-center space-x-2 md:space-x-3 w-full max-w-lg">
               <span className="hidden md:inline-block text-xs text-muted-foreground min-w-[2.5rem]">1:23</span>
-              <Slider
-                value={progress}
-                onValueChange={setProgress}
-                max={100}
-                step={1}
-                className="flex-1"
-                aria-label="Progresso da faixa"
-              />
+              <Slider value={[pct]} onValueChange={handleSeek} max={100} step={1} className="flex-1" aria-label="Progresso da faixa" />
               <span className="hidden md:inline-block text-xs text-muted-foreground min-w-[2.5rem]">4:31</span>
             </div>
           </div>
@@ -81,13 +78,7 @@ const MusicPlayer = () => {
             </Button>
             <div className="hidden lg:flex items-center space-x-2" aria-label="Controle de volume">
               <Volume2 className="h-4 w-4 text-muted-foreground" />
-              <Slider
-                value={volume}
-                onValueChange={setVolume}
-                max={100}
-                step={1}
-                className="w-20"
-              />
+              <Slider value={[volPct]} onValueChange={handleVolume} max={100} step={1} className="w-20" />
             </div>
           </div>
           </div>

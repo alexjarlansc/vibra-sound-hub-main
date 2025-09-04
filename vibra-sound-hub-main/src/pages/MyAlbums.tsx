@@ -7,6 +7,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { usePlayer } from '@/context/PlayerContext';
+import { Play } from 'lucide-react';
 import PageShell from '@/components/PageShell';
 import UploadMusicModal from '@/components/UploadMusicModal';
 
@@ -34,6 +36,7 @@ const MyAlbums = () => {
   useEffect(()=>{ if(openAlbumId) reloadTracks(); }, [openAlbumId, reloadTracks]);
 
   const openAlbum = albums.find(a => a.id === openAlbumId) || null;
+  const { play, playQueue } = usePlayer();
 
   if(!userId){
     return <PageShell title="Meus Álbuns" subtitle="Faça login para ver seus álbuns enviados."><></></PageShell>;
@@ -72,8 +75,15 @@ const MyAlbums = () => {
             {!tracksLoading && tracks.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma faixa.</p>}
             <ul className="space-y-2 max-h-80 overflow-auto pr-2">
               {tracks.map(t => (
-                <li key={t.id} className="flex items-center justify-between text-sm border rounded-md px-3 py-2">
-                  <span className="truncate mr-2" title={t.filename}>{t.filename}</span>
+                <li key={t.id} className="flex items-center justify-between text-sm border rounded-md px-3 py-2 gap-3">
+                  <button
+                    className="p-1.5 rounded-md bg-primary/10 hover:bg-primary/20 text-primary transition-colors"
+                    aria-label="Tocar"
+                    onClick={()=> play({ id: t.id, title: t.filename, url: t.file_url, albumId: openAlbum?.id || undefined })}
+                  >
+                    <Play className="h-4 w-4" />
+                  </button>
+                  <span className="truncate flex-1" title={t.filename}>{t.filename}</span>
                   <a href={t.file_url} target="_blank" rel="noreferrer" className="text-primary text-xs hover:underline">Abrir</a>
                 </li>
               ))}
