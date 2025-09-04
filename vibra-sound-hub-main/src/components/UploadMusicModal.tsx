@@ -2,7 +2,6 @@ import { useState, useCallback, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import type { TablesInsert } from '@/integrations/supabase/types';
 import { uploadFileWithCancel } from '@/lib/uploadWithCancel';
@@ -197,14 +196,17 @@ export const UploadMusicModal: React.FC<UploadMusicModalProps> = ({ open, onOpen
           </div>
           <div className="space-y-1">
             <label className="text-sm font-medium">Gênero Musical</label>
-            <Select value={genre} onValueChange={(v)=>{ if(import.meta.env.DEV) console.debug('[UploadMusicModal] genre change', v); try { setGenre(v); } catch(err){ if(import.meta.env.DEV) console.error('[UploadMusicModal] setGenre error', err); } }}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Selecionar" />
-              </SelectTrigger>
-              <SelectContent>
-                {GENRES.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <div className="relative">
+              <select
+                value={genre}
+                onChange={e=> { const v = e.target.value; if(import.meta.env.DEV) console.debug('[UploadMusicModal] genre change', v); setGenre(v); }}
+                className="w-full h-10 text-sm rounded-md border border-input bg-background px-3 pr-8 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              >
+                <option value="">Selecionar</option>
+                {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
+              </select>
+              <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">▾</span>
+            </div>
           </div>
           <div className="space-y-1">
             <label className="text-sm font-medium">Capa do Álbum</label>
