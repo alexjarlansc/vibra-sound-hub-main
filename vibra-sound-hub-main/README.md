@@ -75,6 +75,62 @@ Configuração recomendada:
 
 Adicionar as mesmas variáveis (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`).
 
+## 🎵 Storage: Bucket de Músicas
+
+Para que o upload funcione você PRECISA de um bucket de storage (default: `music`).
+
+### Opção 1: Criar via Dashboard
+1. Acesse Supabase > Storage > Buckets > Create bucket.
+2. Nome: `music` (ou outro; se mudar ajuste `VITE_SUPABASE_MUSIC_BUCKET` no `.env`).
+3. Marque como Public (permite leitura direta das faixas e capas).
+4. Create.
+5. (Opcional) Policies: garanta que a policy de leitura pública (SELECT) esteja ativa. Para uploads via cliente com anon key você pode criar uma policy restrita a usuários autenticados.
+
+### Opção 2: Script automático
+Adicione no `.env` também a `SUPABASE_SERVICE_ROLE_KEY` (NÃO commitar). Então rode na raiz:
+```sh
+npm run ensure:bucket
+```
+Esse script verifica e cria o bucket se não existir.
+
+### Variáveis relevantes
+```
+VITE_SUPABASE_MUSIC_BUCKET=music
+SUPABASE_SERVICE_ROLE_KEY=... (apenas local/CI)
+```
+
+### Erro "Bucket not found"
+Se aparecer toast "Bucket de storage não encontrado":
+Checklist:
+- Bucket existe no painel e exatamente com o mesmo nome? (case sensitive)
+- Variável `VITE_SUPABASE_MUSIC_BUCKET` está no `.env` e Vite foi reiniciado?
+- Você está usando o projeto correto (URL e anon key conferem)?
+- A build (Vercel) recebeu as mesmas variáveis de ambiente?
+
+### Alterar nome do bucket
+1. Renomear no painel NÃO é possível; crie outro bucket e ajuste `.env`.
+2. Atualize `VITE_SUPABASE_MUSIC_BUCKET` e reinicie `npm run dev`.
+
+### Tamanho e tipos aceitos
+Script define limite ~100MB e mime types básicos (`audio/mpeg`, imagens). Ajuste em `scripts/ensureBucket.ts` se quiser mais formatos (ex: `audio/wav`, `audio/flac`).
+
+### Políticas mínimas sugeridas
+Para leitura pública simples:
+```
+-- Storage Policies (GUI facilita)
+SELECT: (bucket_id = 'music')
+```
+Para upload somente de usuários logados:
+```
+INSERT: (bucket_id = 'music') AND auth.role() = 'authenticated'
+```
+Adapte conforme necessidade de moderação.
+
+### Migração futura
+Se quiser servir via CDN / transformações de imagem: habilite Image Transformation no painel, use URLs públicas.
+
+Se permanecer o erro mesmo após criar o bucket, rode o script em modo debug adicionando `node --trace-warnings vibra-sound-hub-main/scripts/ensureBucket.ts` e copie a saída.
+
 Arquivo `vercel.json` na raiz já define:
 ```
 "buildCommand": "cd vibra-sound-hub-main && npm install && npm run build",

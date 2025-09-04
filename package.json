@@ -8,7 +8,8 @@
     "dev": "npm --prefix vibra-sound-hub-main run dev",
     "build": "npm --prefix vibra-sound-hub-main run build",
     "preview": "npm --prefix vibra-sound-hub-main run preview",
-    "lint": "npm --prefix vibra-sound-hub-main run lint"
+  "lint": "npm --prefix vibra-sound-hub-main run lint",
+  "ensure:bucket": "node vibra-sound-hub-main/scripts/ensureBucket.ts || (npm i -D tsx && npx tsx vibra-sound-hub-main/scripts/ensureBucket.ts)"
   },
   "devDependencies": {
     "@types/node": "^24.3.0",

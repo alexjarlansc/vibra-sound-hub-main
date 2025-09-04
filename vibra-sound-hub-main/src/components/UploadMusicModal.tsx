@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
+import type { TablesInsert } from '@/integrations/supabase/types';
 import { uploadFileWithCancel } from '@/lib/uploadWithCancel';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
@@ -75,20 +76,27 @@ export const UploadMusicModal: React.FC<UploadMusicModalProps> = ({ open, onOpen
       setProgress(2);
       setWasAborted(false);
       abortRef.current = new AbortController();
-      // cria album
-      const { data: albumInsert, error: albumErr } = await supabase.from('albums').insert({ name: albumName, genre: genre || null, cover_url: null, user_id: userId }).select().single();
+  const BUCKET = import.meta.env.VITE_SUPABASE_BUCKET_MUSIC || 'music';
+  // cria album
+  const albumPayload: TablesInsert<'albums'> = { name: albumName, genre: genre || null, cover_url: null, user_id: userId || null };
+  // Workaround de tipagem: codegen atual está inferindo 'never' para inserts; usar cast any
+  const { data: albumInsert, error: albumErr } = await (supabase.from('albums') as any).insert(albumPayload).select().single();
       if(albumErr) throw albumErr;
+  if(!albumInsert){ throw new Error('Falha ao criar álbum (sem retorno).'); }
 
       // envia capa se houver
       let coverUrl: string | null = null;
-      if(cover){
+    if(cover && albumInsert){
         const path = `covers/${albumInsert.id}-${Date.now()}-${cover.name}`;
         try {
-          coverUrl = await uploadFileWithCancel('music', path, cover, abortRef.current.signal);
-          await supabase.from('albums').update({ cover_url: coverUrl }).eq('id', albumInsert.id);
+          coverUrl = await uploadFileWithCancel(BUCKET, path, cover, abortRef.current.signal);
+      await (supabase.from('albums') as any).update({ cover_url: coverUrl }).eq('id', albumInsert.id);
         } catch(err){
-          if(isAbortError(err)) throw { name: 'AbortError', albumId: albumInsert.id } as AbortLikeWithAlbum;
+      if(isAbortError(err)) throw { name: 'AbortError', albumId: albumInsert.id } as AbortLikeWithAlbum;
           const msg = err instanceof Error ? err.message : 'erro desconhecido';
+          if(/Bucket not found/i.test(msg)){
+            throw new Error('Bucket de storage não encontrado. Crie o bucket "'+BUCKET+'" no painel Supabase (Storage) e permita acesso público.');
+          }
           throw new Error('Falha ao enviar capa: '+ msg);
         }
       }
@@ -101,20 +109,24 @@ export const UploadMusicModal: React.FC<UploadMusicModalProps> = ({ open, onOpen
         try {
       const signal = abortRef.current?.signal; // guarda referência segura
       if(!signal){ throw new Error('Abort controller ausente'); }
-          const publicUrl = await uploadFileWithCancel('music', path, f, signal);
+          const publicUrl = await uploadFileWithCancel(BUCKET, path, f, signal);
           // garantir que albumInsert existe
           if(!albumInsert) throw new Error('Álbum não retornado da criação.');
-          await supabase.from('tracks').insert({
+          const trackPayload: TablesInsert<'tracks'> = {
             album_id: albumInsert.id,
-            user_id: userId ?? null,
+            user_id: userId || null,
             filename: f.name,
             file_url: publicUrl,
             mime_type: f.type || null,
             size_bytes: f.size
-          });
+          };
+          await (supabase.from('tracks') as any).insert(trackPayload);
         } catch(err){
           if(isAbortError(err)) throw { name: 'AbortError', albumId: albumInsert.id } as AbortLikeWithAlbum;
           const msg = err instanceof Error ? err.message : 'erro desconhecido';
+          if(/Bucket not found/i.test(msg)){
+            throw new Error('Bucket de storage não encontrado. Crie o bucket "'+BUCKET+'" no painel Supabase (Storage) e permita acesso público.');
+          }
           throw new Error('Falha ao enviar arquivo '+ f.name + ': ' + msg);
         }
         current++;
