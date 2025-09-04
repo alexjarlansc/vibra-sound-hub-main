@@ -93,13 +93,12 @@ const Header = () => {
               className="hidden md:flex h-10 w-10 rounded-full items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition"
             >
               <ListMusic className="h-5 w-5" />
+            </button>
             <button
-              aria-label="Buscar"
-              onClick={()=> setOpenSearch(true)}
+              onClick={()=>navigate('/podcasts')}
+              aria-label="Podcasts ao vivo"
               className="hidden md:flex h-10 w-10 rounded-full items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition"
             >
-              <Search className="h-5 w-5" />
-            </button>
               <span className="relative inline-flex">
                 <Radio className="h-5 w-5" />
                 <span className="absolute -top-1 -right-1 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-background animate-pulse" />
