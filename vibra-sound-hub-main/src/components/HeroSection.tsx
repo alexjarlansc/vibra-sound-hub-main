@@ -5,13 +5,13 @@ import { Badge } from "@/components/ui/badge";
 
 const HeroSection = () => {
   return (
-    <div className="relative min-h-[60vh] flex items-center justify-center overflow-hidden">
-      {/* Background Gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/10 to-accent/20"></div>
+    <div className="relative min-h-[52vh] flex items-center justify-center overflow-hidden pt-2">
+      {/* Background overlay suavizado (mais leve para combinar com gradiente global) */}
+      <div className="absolute inset-0 bg-gradient-to-br from-background/40 via-background/10 to-transparent"></div>
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiM5QzkyQUMiIGZpbGwtb3BhY2l0eT0iMC4xIj48Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSIxLjUiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-40"></div>
       
       <div className="container mx-auto px-6 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+  <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
           {/* Hero Content */}
           <div className="text-center lg:text-left">
             <Badge variant="secondary" className="mb-4 bg-primary/10 text-primary border-primary/20">

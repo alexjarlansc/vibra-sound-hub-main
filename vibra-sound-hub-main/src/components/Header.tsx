@@ -1,4 +1,4 @@
-import { Search, Upload, LogIn, User, Bell, Menu, ChevronRight, Heart, Settings, LogOut, FileMusic, PlusSquare, User2 } from "lucide-react";
+import { Search, Upload, LogIn, User, Bell, Menu, ChevronRight, Heart, Settings, LogOut, FileMusic, PlusSquare, User2, ListMusic, Radio } from "lucide-react";
 import { BRAND } from "@/config/branding";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -72,19 +72,35 @@ const Header = () => {
             </div>
           </div>
 
-          {/* Search Bar */}
-          <div className="flex-1 max-w-xl mx-4 sm:mx-8 hidden md:block">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
-              <Input
-                placeholder="Busque por artistas, álbuns, playlists..."
-                className="pl-12 pr-4 h-12 bg-muted/50 border-none rounded-full focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:bg-background"
-              />
-            </div>
-          </div>
+          {/* Centro vazio (ícones movidos para a direita) */}
+          <div className="flex-1" />
 
-          {/* Action Buttons */}
+          {/* Action Buttons + Ícones (Playlists / Podcasts ao vivo) */}
           <div className="flex items-center space-x-2 sm:space-x-3">
+            {/* Ícones: Busca / Playlists / Podcasts ao vivo */}
+            <button
+              aria-label="Buscar"
+              className="hidden md:flex h-10 w-10 rounded-full items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition"
+            >
+              <Search className="h-5 w-5" />
+            </button>
+            <button
+              onClick={()=>navigate('/playlists')}
+              aria-label="Minhas listas de reprodução"
+              className="hidden md:flex h-10 w-10 rounded-full items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition"
+            >
+              <ListMusic className="h-5 w-5" />
+            </button>
+            <button
+              onClick={()=>{/* Futuro: rota podcasts */}}
+              aria-label="Podcasts ao vivo"
+              className="hidden md:flex relative h-10 w-10 rounded-full items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition"
+            >
+              <span className="relative inline-flex">
+                <Radio className="h-5 w-5" />
+                <span className="absolute -top-1 -right-1 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-background animate-pulse" />
+              </span>
+            </button>
             <Button variant="ghost" size="sm" className="hidden lg:flex hover:bg-muted/50" onClick={()=>{
               if(!userId){
                 toast({ title: 'Faça login para enviar.' });
@@ -179,21 +195,21 @@ const Header = () => {
                 </button>
               </li>
               <li>
-                <button className="w-full flex items-center gap-3 px-4 py-3 rounded-md hover:bg-muted/50 transition-colors text-left" onClick={()=>{}}>
+                <button className="w-full flex items-center gap-3 px-4 py-3 rounded-md hover:bg-muted/50 transition-colors text-left" onClick={()=>{ navigate('/playlists'); setOpenUserMenu(false); }}>
                   <PlusSquare className="w-4 h-4 text-muted-foreground" />
                   <span className="flex-1">Minhas Playlists</span>
                   <ChevronRight className="w-4 h-4 opacity-40" />
                 </button>
               </li>
               <li>
-                <button className="w-full flex items-center gap-3 px-4 py-3 rounded-md hover:bg-muted/50 transition-colors text-left" onClick={()=>{}}>
+                <button className="w-full flex items-center gap-3 px-4 py-3 rounded-md hover:bg-muted/50 transition-colors text-left" onClick={()=>{ navigate('/meus-albuns'); setOpenUserMenu(false); }}>
                   <FileMusic className="w-4 h-4 text-muted-foreground" />
                   <span className="flex-1">Meus CDs/Músicas</span>
                   <ChevronRight className="w-4 h-4 opacity-40" />
                 </button>
               </li>
               <li>
-                <button className="w-full flex items-center gap-3 px-4 py-3 rounded-md hover:bg-muted/50 transition-colors text-left" onClick={()=>{}}>
+                <button className="w-full flex items-center gap-3 px-4 py-3 rounded-md hover:bg-muted/50 transition-colors text-left" onClick={()=>{ navigate('/favoritos'); setOpenUserMenu(false); }}>
                   <Heart className="w-4 h-4 text-muted-foreground" />
                   <span className="flex-1">Meus Favoritos</span>
                   <ChevronRight className="w-4 h-4 opacity-40" />

@@ -11,9 +11,11 @@ try { TrendingProfilesSection = lazy(()=> import('@/components/TrendingProfilesS
 
 const Index = () => {
   return (
-    <div>
-      <Suspense fallback={<SectionSkeleton height={420} />}> <HeroSection /> </Suspense>
-      <div className="container mx-auto px-6 py-12 sm:py-16">
+    <div className="relative bg-gradient-to-br from-primary/20 via-primary/10 to-accent/20">
+      {/* Padrão sutil extendido (opcional) */}
+      <div className="pointer-events-none absolute inset-0 opacity-[0.15] bg-[radial-gradient(circle_at_80%_10%,rgba(255,255,255,0.25),transparent_60%)]" />
+  <Suspense fallback={<SectionSkeleton height={420} />}> <HeroSection /> </Suspense>
+  <div className="container mx-auto px-6 py-8 sm:py-10">
         <Suspense fallback={<SectionSkeleton height={380} />}> <FeaturedSection /> </Suspense>
         {TrendingProfilesSection && (
           <Suspense fallback={<SectionSkeleton height={300} />}> <TrendingProfilesSection /> </Suspense>

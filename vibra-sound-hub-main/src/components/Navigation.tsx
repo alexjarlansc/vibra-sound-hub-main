@@ -1,48 +1,82 @@
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { ListMusic, Radio, X } from 'lucide-react';
+import { useState, useMemo } from 'react';
 
 const Navigation = () => {
   const { userId } = useAuth();
   const navigate = useNavigate();
-  const navItems = [
-    { label: "Descobrir", value: "descobrir", active: true },
-    { label: "Playlists", value: "playlists", active: false },
-    { label: "Top Charts", value: "charts", active: false },
-    { label: "Gêneros", value: "generos", active: false },
-    { label: "Podcasts", value: "podcasts", active: false },
-    { label: "Artistas", value: "artistas", active: false },
-  ];
+  interface NavIconItem { key:string; label:string; icon: React.ReactNode; description?:string; onClick?: () => void; }
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState<string|null>(null);
+  const navItems: NavIconItem[] = useMemo(()=>[
+    { key:'playlists', label:'Minhas listas de reprodução', icon:<ListMusic className="h-5 w-5"/>, description:'Gerencie e escute suas playlists', onClick:()=>navigate('/playlists') },
+    { key:'podcasts', label:'Podcasts (ao vivo)', icon:(
+        <span className="relative inline-flex">
+          <Radio className="h-5 w-5"/>
+          {/* Indicador LIVE */}
+          <span className="absolute -top-1 -right-1 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-background animate-pulse" />
+        </span>
+      ), description:'Transmissões e episódios em tempo real' },
+  ],[navigate]);
 
   return (
-  <nav className="supports-[backdrop-filter]:bg-background/20 bg-background/55 backdrop-blur-md supports-[backdrop-filter]:backdrop-blur-xl border-b border-white/10 shadow-[0_2px_14px_-6px_rgba(0,0,0,0.2)] relative before:absolute before:inset-0 before:pointer-events-none before:bg-gradient-to-tr before:from-white/6 before:via-transparent before:to-transparent after:absolute after:inset-0 after:pointer-events-none after:bg-[radial-gradient(circle_at_10%_0%,rgba(255,255,255,0.15),transparent_55%)]">
-  <div className="container mx-auto px-6 relative z-10">
-        <div className="flex items-center justify-between py-4">
-          <Tabs defaultValue="descobrir" className="w-full">
-            <TabsList className="grid w-fit grid-cols-6 bg-muted/30 h-12 p-1 rounded-full">
-              {navItems.map((item) => (
-                <TabsTrigger
-                  key={item.value}
-                  value={item.value}
-                  className="px-6 rounded-full font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all duration-200"
-                >
-                  {item.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-          
-          <div className="hidden lg:flex items-center space-x-2">
-            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">Recentes</Button>
-            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">Favoritos</Button>
-            {userId && (
-              <Button variant="ghost" size="sm" className="text-primary hover:text-primary/90" onClick={()=>navigate('/meus-albuns')}>Meus Álbuns</Button>
-            )}
-          </div>
+  <nav className="supports-[backdrop-filter]:bg-background/25 bg-background/60 backdrop-blur-md border-b border-white/10 shadow-[0_2px_14px_-6px_rgba(0,0,0,0.2)] relative">
+    <div className="container mx-auto px-4 md:px-6 relative z-10">
+      <div className="flex items-center justify-between h-14">
+        {/* Ícones principais */}
+        <div className="flex items-center gap-2 md:gap-3">
+          {navItems.map(item => (
+            <button
+              key={item.key}
+              onClick={()=>{ setActive(item.key); setOpen(true); item.onClick?.(); }}
+              className={`relative group h-10 w-10 rounded-full flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition ${active===item.key ? 'text-primary bg-primary/15 ring-2 ring-primary/40' : ''}`}
+              aria-label={item.label}
+            >
+              {item.icon}
+              <span className="sr-only">{item.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Ações secundárias */}
+        <div className="hidden lg:flex items-center space-x-1">
+          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" onClick={()=>navigate('/recentes')}>Recentes</Button>
+          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" onClick={()=>navigate('/favoritos')}>Favoritos</Button>
+          {userId && (
+            <Button variant="ghost" size="sm" className="text-primary hover:text-primary/90" onClick={()=>navigate('/meus-albuns')}>Meus Álbuns</Button>
+          )}
         </div>
       </div>
-    </nav>
+    </div>
+
+    {/* Painel deslizante */}
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetContent side="top" className="pt-6 pb-10 max-h-[70vh] overflow-y-auto">
+        <SheetHeader className="mb-4">
+          <SheetTitle className="flex items-center gap-3 text-sm tracking-wide">
+            {active ? navItems.find(n=>n.key===active)?.label : 'Navegação'}
+            <Button variant="ghost" size="icon" className="ml-auto" onClick={()=>setOpen(false)} aria-label="Fechar"><X className="h-4 w-4"/></Button>
+          </SheetTitle>
+        </SheetHeader>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {navItems.map(item => (
+            <div key={item.key} className="p-4 rounded-lg border bg-card/60 backdrop-blur-sm flex flex-col gap-3 hover:border-primary/40 transition cursor-pointer" onClick={()=>{ setOpen(false); item.onClick?.(); }}>
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full flex items-center justify-center bg-primary/10 text-primary">
+                  {item.icon}
+                </div>
+                <div className="font-medium text-sm">{item.label}</div>
+              </div>
+              {item.description && <p className="text-xs text-muted-foreground leading-relaxed">{item.description}</p>}
+            </div>
+          ))}
+        </div>
+      </SheetContent>
+    </Sheet>
+  </nav>
   );
 };
 
