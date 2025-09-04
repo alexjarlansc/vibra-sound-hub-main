@@ -1,9 +1,12 @@
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import ProfileAvatar from '@/components/ProfileAvatar';
 import PageShell from '@/components/PageShell';
+import { supabase } from '@/integrations/supabase/client';
+import { Badge } from '@/components/ui/badge';
+import { ShieldCheck, Crown } from 'lucide-react';
 
 // Placeholder para dados; depois integrar com Supabase
 interface Stats { plays: number; uploads: number; downloads: number; followers: number; following: number; }
@@ -11,6 +14,8 @@ interface Stats { plays: number; uploads: number; downloads: number; followers: 
 const Profile = () => {
   const { user, userEmail } = useAuth();
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(user?.user_metadata?.avatar_url);
+  const [profileInfo, setProfileInfo] = useState<{ role?: string; is_verified?: boolean }|null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
   // sincroniza quando metadata mudar (ex: após update em outra aba/componente)
   if(user?.user_metadata?.avatar_url !== avatarUrl){
     // evita loop se set for igual
@@ -28,6 +33,22 @@ const Profile = () => {
 
   const stats: Stats = { plays: 0, uploads: 0, downloads: 0, followers: 0, following: 0 };
 
+  // Carrega role/is_verified
+  useEffect(()=>{
+    if(!user?.id) return;
+    let canceled = false;
+    (async()=>{
+      try {
+        setProfileLoading(true);
+        const { data, error } = await supabase.from('profiles').select('role,is_verified').eq('id', user.id).maybeSingle();
+        if(!canceled){
+          if(!error) setProfileInfo(data as any);
+        }
+      } finally { if(!canceled) setProfileLoading(false); }
+    })();
+    return ()=>{ canceled = true; };
+  },[user?.id]);
+
   return (
     <div className="min-h-screen">
       <PageShell>
@@ -36,7 +57,22 @@ const Profile = () => {
           <div className="flex-1 w-full">
             <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
               <div>
-                <h1 className="text-3xl font-bold tracking-tight text-foreground">{displayName}</h1>
+                <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3 flex-wrap">
+                  <span>{displayName}</span>
+                  {profileInfo?.role === 'admin' && (
+                    <Badge variant="secondary" className="flex items-center gap-1 text-[11px] py-1">
+                      <Crown className="h-3.5 w-3.5 text-amber-500" /> Admin
+                    </Badge>
+                  )}
+                  {profileInfo?.is_verified && (
+                    <Badge className="flex items-center gap-1 bg-emerald-600 text-white hover:bg-emerald-600 text-[11px] py-1">
+                      <ShieldCheck className="h-3.5 w-3.5" /> Verificado
+                    </Badge>
+                  )}
+                  {profileLoading && !profileInfo && (
+                    <span className="text-xs text-muted-foreground animate-pulse">Carregando...</span>
+                  )}
+                </h1>
                 <p className="text-sm text-muted-foreground mt-1">Divulgador</p>
               </div>
               {/* Botão de verificação removido conforme solicitação */}
