@@ -75,6 +75,13 @@ Configuração recomendada:
 
 Adicionar as mesmas variáveis (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`).
 
+Arquivo `vercel.json` na raiz já define:
+```
+"buildCommand": "cd vibra-sound-hub-main && npm install && npm run build",
+"outputDirectory": "vibra-sound-hub-main/dist"
+```
+Caso configure manualmente via dashboard, basta apontar para o subdiretório e manter os comandos acima.
+
 ## 🔒 Segurança
 - Chave anon do Supabase pode ficar no cliente.
 - Evite expor service_role.

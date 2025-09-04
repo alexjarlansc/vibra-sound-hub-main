@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "framework": "vite",
+  "buildCommand": "cd vibra-sound-hub-main && npm install && npm run build",
+  "outputDirectory": "vibra-sound-hub-main/dist",
+  "env": {
+    "VITE_SUPABASE_URL": "${VITE_SUPABASE_URL}",
+    "VITE_SUPABASE_ANON_KEY": "${VITE_SUPABASE_ANON_KEY}"
+  }
+}

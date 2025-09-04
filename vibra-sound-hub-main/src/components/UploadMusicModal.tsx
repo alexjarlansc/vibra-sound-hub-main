@@ -20,9 +20,10 @@ interface UploadMusicModalProps {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   userId?: string | null; // se não tiver user não deixa enviar
+  onUploaded?: () => void; // callback para atualizar listas externas
 }
 
-export const UploadMusicModal: React.FC<UploadMusicModalProps> = ({ open, onOpenChange, userId }) => {
+export const UploadMusicModal: React.FC<UploadMusicModalProps> = ({ open, onOpenChange, userId, onUploaded }) => {
   const { toast } = useToast();
   const [albumName, setAlbumName] = useState('');
   const [genre, setGenre] = useState('');
@@ -85,9 +86,10 @@ export const UploadMusicModal: React.FC<UploadMusicModalProps> = ({ open, onOpen
         try {
           coverUrl = await uploadFileWithCancel('music', path, cover, abortRef.current.signal);
           await supabase.from('albums').update({ cover_url: coverUrl }).eq('id', albumInsert.id);
-        } catch(e:any){
-          if(e.name === 'AbortError') throw e; // repassa para fluxo de abort
-          throw new Error('Falha ao enviar capa: '+ e.message);
+        } catch(err){
+          if(isAbortError(err)) throw { name: 'AbortError', albumId: albumInsert.id } as AbortLikeWithAlbum;
+          const msg = err instanceof Error ? err.message : 'erro desconhecido';
+          throw new Error('Falha ao enviar capa: '+ msg);
         }
       }
 
@@ -99,27 +101,30 @@ export const UploadMusicModal: React.FC<UploadMusicModalProps> = ({ open, onOpen
         try {
           const publicUrl = await uploadFileWithCancel('music', path, f, abortRef.current.signal);
           await supabase.from('tracks').insert({ album_id: albumInsert.id, user_id: userId, filename: f.name, file_url: publicUrl, mime_type: f.type, size_bytes: f.size });
-        } catch(e:any){
-          if(e.name === 'AbortError') throw { ...e, albumId: albumInsert.id };
-          throw new Error('Falha ao enviar arquivo '+ f.name + ': ' + e.message);
+        } catch(err){
+          if(isAbortError(err)) throw { name: 'AbortError', albumId: albumInsert.id } as AbortLikeWithAlbum;
+          const msg = err instanceof Error ? err.message : 'erro desconhecido';
+          throw new Error('Falha ao enviar arquivo '+ f.name + ': ' + msg);
         }
         current++;
         setProgress( 10 + Math.round((current/total)*90) );
       }
 
-      toast({ title: 'Upload concluído.' });
+  toast({ title: 'Upload concluído.' });
+  if(onUploaded) onUploaded();
       setAlbumName(''); setGenre(''); setCover(null); setFiles([]);
       onOpenChange(false);
-    } catch (e: any) {
-      if(e.name === 'AbortError'){
+    } catch (err: unknown) {
+      if(isAbortError(err)){
         setWasAborted(true);
-        // se criamos álbum e abortamos, tenta remover para não ficar incompleto
-        if((e as any).albumId){
-          await supabase.from('albums').delete().eq('id', (e as any).albumId);
+        const albumId = (err as Partial<AbortLikeWithAlbum>).albumId;
+        if(albumId){
+          await supabase.from('albums').delete().eq('id', albumId);
         }
         toast({ title: 'Upload cancelado.' });
       } else {
-        toast({ title: 'Erro no upload', description: e.message, variant: 'destructive' });
+        const msg = err instanceof Error ? err.message : 'Erro desconhecido';
+        toast({ title: 'Erro no upload', description: msg, variant: 'destructive' });
       }
     } finally {
       setLoading(false);
@@ -186,3 +191,10 @@ export const UploadMusicModal: React.FC<UploadMusicModalProps> = ({ open, onOpen
 };
 
 export default UploadMusicModal;
+
+// --- util types / helpers ---
+interface AbortLike { name: string }
+interface AbortLikeWithAlbum extends AbortLike { albumId: string }
+function isAbortError(err: unknown): err is AbortLike {
+  return typeof err === 'object' && err !== null && 'name' in err && (err as { name?: string }).name === 'AbortError';
+}
