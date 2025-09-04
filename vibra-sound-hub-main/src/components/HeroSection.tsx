@@ -1,9 +1,18 @@
-import { Play, Plus, TrendingUp } from "lucide-react";
+import { Play, Pause, Plus, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { usePlayer } from '@/context/PlayerContext';
 
 const HeroSection = () => {
+  const { play, toggle, current, playing } = usePlayer();
+  // Identificador da faixa demo da Home
+  const demoId = 'hero_demo_track';
+  const isCurrentDemo = current?.id === demoId;
+  const handleHeroPlay = () => {
+    if(isCurrentDemo){ toggle(); return; }
+    play({ id: demoId, title: 'Faixa Demo', artist: 'Nomix', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' }, { replaceQueue: true });
+  };
   return (
     <div className="relative min-h-[52vh] flex items-center justify-center overflow-hidden pt-2">
       {/* Background overlay suavizado (mais leve para combinar com gradiente global) */}
@@ -27,9 +36,18 @@ const HeroSection = () => {
               Explore milhões de faixas, descubra novos artistas e crie suas playlists personalizadas.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-              <Button size="lg" className="bg-gradient-primary hover:opacity-90 h-12 px-8 rounded-full">
-                <Play className="w-5 h-5 mr-2 fill-current" />
-                Começar a Ouvir
+              <Button
+                size="lg"
+                onClick={handleHeroPlay}
+                className="bg-gradient-primary hover:opacity-90 h-12 px-8 rounded-full flex items-center"
+                aria-label={isCurrentDemo && playing ? 'Pausar' : 'Tocar'}
+              >
+                {isCurrentDemo && playing ? (
+                  <Pause className="w-5 h-5 mr-2" />
+                ) : (
+                  <Play className="w-5 h-5 mr-2 fill-current" />
+                )}
+                {isCurrentDemo && playing ? 'Pausar' : 'Começar a Ouvir'}
               </Button>
               <Button size="lg" variant="outline" className="h-12 px-8 rounded-full border-primary/20 hover:bg-primary/5">
                 <Plus className="w-5 h-5 mr-2" />
@@ -69,6 +87,7 @@ const HeroSection = () => {
           </div>
         </div>
       </div>
+  {/* Volume removido */}
     </div>
   );
 };

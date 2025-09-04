@@ -1,4 +1,4 @@
-import { Search, Upload, LogIn, User, Bell, Menu, ChevronRight, Heart, Settings, LogOut, FileMusic, PlusSquare, User2, ListMusic, Radio } from "lucide-react";
+import { Search, Upload, LogIn, User, Bell, Menu, ChevronRight, Heart, Settings, LogOut, FileMusic, PlusSquare, User2, ListMusic } from "lucide-react";
 import GlobalSearchModal from '@/components/GlobalSearchModal';
 import { BRAND } from "@/config/branding";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import UploadMusicModal from "@/components/UploadMusicModal";
 import { useState } from "react";
+import SettingsModal from '@/components/SettingsModal';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from "@/hooks/useAuth";
@@ -20,6 +21,7 @@ const Header = () => {
   const [openUserMenu, setOpenUserMenu] = useState(false);
   const navigate = useNavigate();
   const [openSearch, setOpenSearch] = useState(false);
+  const [openSettings, setOpenSettings] = useState(false);
 
   // Deriva nome amigável do usuário
   const displayName = (() => {
@@ -93,16 +95,6 @@ const Header = () => {
               className="hidden md:flex h-10 w-10 rounded-full items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition"
             >
               <ListMusic className="h-5 w-5" />
-            </button>
-            <button
-              onClick={()=>navigate('/podcasts')}
-              aria-label="Podcasts ao vivo"
-              className="hidden md:flex h-10 w-10 rounded-full items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition"
-            >
-              <span className="relative inline-flex">
-                <Radio className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-background animate-pulse" />
-              </span>
             </button>
             <Button variant="ghost" size="sm" className="hidden lg:flex hover:bg-muted/50" onClick={()=>{
               if(!userId){
@@ -219,7 +211,7 @@ const Header = () => {
                 </button>
               </li>
               <li>
-                <button className="w-full flex items-center gap-3 px-4 py-3 rounded-md hover:bg-muted/50 transition-colors text-left" onClick={()=>{}}>
+                <button className="w-full flex items-center gap-3 px-4 py-3 rounded-md hover:bg-muted/50 transition-colors text-left" onClick={()=>{ setOpenSettings(true); }}>
                   <Settings className="w-4 h-4 text-muted-foreground" />
                   <span className="flex-1">Configurações</span>
                   <ChevronRight className="w-4 h-4 opacity-40" />
@@ -236,6 +228,7 @@ const Header = () => {
         </SheetContent>
       </Sheet>
   <GlobalSearchModal open={openSearch} onOpenChange={setOpenSearch} onNavigate={navigate} />
+  <SettingsModal open={openSettings} onOpenChange={setOpenSettings} />
   </header>
   );
 };
