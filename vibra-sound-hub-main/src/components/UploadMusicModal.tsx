@@ -81,7 +81,14 @@ export const UploadMusicModal: React.FC<UploadMusicModalProps> = ({ open, onOpen
   const albumPayload: TablesInsert<'albums'> = { name: albumName, genre: genre || null, cover_url: null, user_id: userId || null };
   // Workaround de tipagem: codegen atual está inferindo 'never' para inserts; usar cast any
   const { data: albumInsert, error: albumErr } = await (supabase.from('albums') as any).insert(albumPayload).select().single();
-      if(albumErr) throw albumErr;
+      if(albumErr) {
+        // Intercepta erro de RLS com mensagem mais amigável
+        const raw = JSON.stringify(albumErr);
+        if(/row level security/i.test(raw) || albumErr.code === '42501' || albumErr.message?.includes('violates row-level security')){
+          throw new Error('Permissão negada ao inserir álbum. Crie policies RLS de INSERT em public.albums (auth.uid() = user_id). Veja README seção Storage/RLS.');
+        }
+        throw albumErr;
+      }
   if(!albumInsert){ throw new Error('Falha ao criar álbum (sem retorno).'); }
 
       // envia capa se houver
@@ -120,7 +127,14 @@ export const UploadMusicModal: React.FC<UploadMusicModalProps> = ({ open, onOpen
             mime_type: f.type || null,
             size_bytes: f.size
           };
-          await (supabase.from('tracks') as any).insert(trackPayload);
+          const { error: trackErr } = await (supabase.from('tracks') as any).insert(trackPayload);
+          if(trackErr){
+            const raw = JSON.stringify(trackErr);
+            if(/row level security/i.test(raw) || trackErr.code === '42501' || trackErr.message?.includes('violates row-level security')){
+              throw new Error('Permissão negada ao inserir faixa. Crie policy INSERT em public.tracks (auth.uid() = user_id e album pertence ao usuário).');
+            }
+            throw trackErr;
+          }
         } catch(err){
           if(isAbortError(err)) throw { name: 'AbortError', albumId: albumInsert.id } as AbortLikeWithAlbum;
           const msg = err instanceof Error ? err.message : 'erro desconhecido';
