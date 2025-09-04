@@ -72,9 +72,12 @@ export const UploadMusicModal: React.FC<UploadMusicModalProps> = ({ open, onOpen
     if(!validate()) return;
     try {
       setLoading(true);
-      setProgress(2);
+  setProgress(2);
       setWasAborted(false);
       abortRef.current = new AbortController();
+  // Recupera token de sessão autenticada para políticas RLS de storage
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
   const BUCKET = import.meta.env.VITE_SUPABASE_MUSIC_BUCKET || import.meta.env.VITE_SUPABASE_BUCKET_MUSIC || 'music';
   // cria album
   const albumPayload: TablesInsert<'albums'> = { name: albumName, genre: genre || null, cover_url: null, user_id: userId || null };
@@ -95,7 +98,7 @@ export const UploadMusicModal: React.FC<UploadMusicModalProps> = ({ open, onOpen
     if(cover && albumInsert){
         const path = `covers/${albumInsert.id}-${Date.now()}-${cover.name}`;
         try {
-          coverUrl = await uploadFileWithCancel(BUCKET, path, cover, abortRef.current.signal);
+          coverUrl = await uploadFileWithCancel(BUCKET, path, cover, abortRef.current.signal, accessToken);
           await (supabase.from('albums') as any).update({ cover_url: coverUrl }).eq('id', albumInsert.id);
         } catch(err){
           if(isAbortError(err)) throw { name: 'AbortError', albumId: albumInsert.id } as AbortLikeWithAlbum;
@@ -131,7 +134,7 @@ create policy "music-select" on storage.objects for select using (
         try {
       const signal = abortRef.current?.signal; // guarda referência segura
       if(!signal){ throw new Error('Abort controller ausente'); }
-          const publicUrl = await uploadFileWithCancel(BUCKET, path, f, signal);
+          const publicUrl = await uploadFileWithCancel(BUCKET, path, f, signal, accessToken);
           // garantir que albumInsert existe
           if(!albumInsert) throw new Error('Álbum não retornado da criação.');
           const trackPayload: TablesInsert<'tracks'> = {
