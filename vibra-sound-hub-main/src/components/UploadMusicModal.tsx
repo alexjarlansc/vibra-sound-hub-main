@@ -96,11 +96,22 @@ export const UploadMusicModal: React.FC<UploadMusicModalProps> = ({ open, onOpen
       // envia arquivos de áudio ou pacotes
       const total = files.length;
       let current = 0;
-      for(const f of files){
+    for(const f of files){
         const path = `tracks/${albumInsert.id}/${Date.now()}-${f.name}`;
         try {
-          const publicUrl = await uploadFileWithCancel('music', path, f, abortRef.current.signal);
-          await supabase.from('tracks').insert({ album_id: albumInsert.id, user_id: userId, filename: f.name, file_url: publicUrl, mime_type: f.type, size_bytes: f.size });
+      const signal = abortRef.current?.signal; // guarda referência segura
+      if(!signal){ throw new Error('Abort controller ausente'); }
+          const publicUrl = await uploadFileWithCancel('music', path, f, signal);
+          // garantir que albumInsert existe
+          if(!albumInsert) throw new Error('Álbum não retornado da criação.');
+          await supabase.from('tracks').insert({
+            album_id: albumInsert.id,
+            user_id: userId ?? null,
+            filename: f.name,
+            file_url: publicUrl,
+            mime_type: f.type || null,
+            size_bytes: f.size
+          });
         } catch(err){
           if(isAbortError(err)) throw { name: 'AbortError', albumId: albumInsert.id } as AbortLikeWithAlbum;
           const msg = err instanceof Error ? err.message : 'erro desconhecido';
@@ -115,6 +126,7 @@ export const UploadMusicModal: React.FC<UploadMusicModalProps> = ({ open, onOpen
       setAlbumName(''); setGenre(''); setCover(null); setFiles([]);
       onOpenChange(false);
     } catch (err: unknown) {
+  if(import.meta.env.DEV){ console.warn('[UploadMusicModal] erro', err); }
       if(isAbortError(err)){
         setWasAborted(true);
         const albumId = (err as Partial<AbortLikeWithAlbum>).albumId;
@@ -129,6 +141,8 @@ export const UploadMusicModal: React.FC<UploadMusicModalProps> = ({ open, onOpen
     } finally {
       setLoading(false);
       setTimeout(()=> setProgress(0), 800);
+      // cleanup controller para evitar reuso indevido
+      abortRef.current = null;
     }
   };
 
@@ -196,5 +210,5 @@ export default UploadMusicModal;
 interface AbortLike { name: string }
 interface AbortLikeWithAlbum extends AbortLike { albumId: string }
 function isAbortError(err: unknown): err is AbortLike {
-  return typeof err === 'object' && err !== null && 'name' in err && (err as { name?: string }).name === 'AbortError';
+  return !!err && typeof err === 'object' && 'name' in err && (err as { name?: string }).name === 'AbortError';
 }
