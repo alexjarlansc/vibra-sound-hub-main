@@ -31,6 +31,33 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ open, onOp
   const [results, setResults] = useState<SearchResult[]>([]);
   const debounced = useDebounce(query, 280);
 
+  // Catálogo de gêneros (visual apenas / seta consulta ao clicar)
+  const genres: { name: string; emoji: string; from: string; to: string; }[] = [
+    { name: 'Forró', emoji: '🎹', from: 'from-orange-500', to: 'to-rose-500' },
+    { name: 'Axé', emoji: '🪘', from: 'from-amber-700', to: 'to-amber-400' },
+    { name: 'Arrocha', emoji: '🕺', from: 'from-rose-600', to: 'to-pink-600' },
+    { name: 'Reggae', emoji: '🦁', from: 'from-yellow-400', to: 'to-green-500' },
+    { name: 'Piseiro', emoji: '🎛️', from: 'from-fuchsia-700', to: 'to-pink-600' },
+    { name: 'Brega', emoji: '🌷', from: 'from-red-700', to: 'to-rose-400' },
+    { name: 'Arrochadeira', emoji: '🪩', from: 'from-purple-800', to: 'to-pink-500' },
+    { name: 'Gospel', emoji: '🕊️', from: 'from-cyan-400', to: 'to-sky-500' },
+    { name: 'Pagode', emoji: '💘', from: 'from-pink-500', to: 'to-fuchsia-600' },
+    { name: 'Rap/Hip-Hop', emoji: '🎧', from: 'from-zinc-600', to: 'to-zinc-400' },
+    { name: 'Sertanejo', emoji: '🤠', from: 'from-amber-500', to: 'to-orange-500' },
+    { name: 'Pop', emoji: '🪅', from: 'from-indigo-500', to: 'to-slate-700' },
+    { name: 'Swingueira', emoji: '🤣', from: 'from-stone-800', to: 'to-amber-400' },
+    { name: 'MPB', emoji: '💚', from: 'from-emerald-700', to: 'to-teal-500' },
+    { name: 'Brega Funk', emoji: '🔥', from: 'from-amber-600', to: 'to-orange-700' },
+    { name: 'Rock', emoji: '🤘', from: 'from-red-700', to: 'to-black' },
+    { name: 'Variados', emoji: '🎼', from: 'from-zinc-700', to: 'to-zinc-500' },
+    { name: 'Eletrônica', emoji: '📡', from: 'from-slate-800', to: 'to-cyan-600' },
+    { name: 'Samba', emoji: '🥁', from: 'from-red-800', to: 'to-rose-600' },
+    { name: 'Podcast', emoji: '🎙️', from: 'from-indigo-800', to: 'to-blue-700' },
+    { name: 'Funk', emoji: '👑', from: 'from-teal-700', to: 'to-fuchsia-600' },
+    { name: 'Trap', emoji: '💎', from: 'from-violet-800', to: 'to-indigo-500' },
+    { name: 'Frevo', emoji: '🏖️', from: 'from-orange-500', to: 'to-yellow-400' },
+  ];
+
   const runSearch = useCallback(async ()=>{
     if(!debounced.trim()){ setResults([]); return; }
     setLoading(true);
@@ -110,8 +137,23 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ open, onOp
                 </li>
               ))}
             </ul>
-            {!debounced.trim() && (
-              <div className="text-[11px] text-muted-foreground py-6 text-center">Digite para procurar em todas as categorias.</div>
+            {!debounced.trim() && !results.length && (
+              <div className="pt-2 pb-4 space-y-3">
+                <p className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground px-1">Gêneros populares</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {genres.map(g=> (
+                    <button
+                      key={g.name}
+                      onClick={()=> setQuery(g.name)}
+                      className={`group relative rounded-xl p-3 text-left text-white text-sm font-medium bg-gradient-to-br ${g.from} ${g.to} shadow-sm hover:shadow-md transition hover:scale-[1.015] focus:outline-none focus:ring-2 focus:ring-white/30`}
+                      aria-label={`Pesquisar gênero ${g.name}`}
+                    >
+                      <span className="block pr-6 leading-snug drop-shadow-sm">{g.name}</span>
+                      <span className="absolute right-2 bottom-2 text-lg opacity-80 group-hover:opacity-100 transition-transform group-hover:scale-110 select-none pointer-events-none">{g.emoji}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
           </ScrollArea>
         </div>
