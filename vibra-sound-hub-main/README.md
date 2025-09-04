@@ -1,75 +1,100 @@
 # Nomix
 
-Projeto renomeado para Nomix - plataforma de streaming de música brasileira.
+Plataforma (experimental) de streaming de música brasileira: upload de faixas, player fixo, perfil com avatar, layout glass.
 
-## Project info
+## ✨ Features
+- Autenticação (Supabase) com sessão persistente
+- Upload de avatar com preview e reset
+- Player global fixo (Header + Player fixos)
+- Layout unificado com utilitário `.panel`
+- Hooks utilitários (auth, trending, mobile)
+- Componentes UI baseados em shadcn + Radix
 
-**URL**: https://lovable.dev/projects/a46e7037-af7f-4819-8249-c8291160187d
-
-## How can I edit this code?
-
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/a46e7037-af7f-4819-8249-c8291160187d) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+## 🗂 Estrutura
+```
+root/
+	package.json (scripts wrapper)
+	vibra-sound-hub-main/
+		package.json (app)
+		src/
+			components/
+			pages/
+			integrations/supabase/
+			hooks/
 ```
 
-**Edit a file directly in GitHub**
+## 🚀 Inicialização Rápida
+Pré-requisitos: Node 18+ e npm.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Clonar e instalar:
+```sh
+git clone git@github.com:alexjarlansc/vibra-sound-hub-main.git
+cd vibra-sound-hub-main
+npm run setup   # instala dependências do app
+npm run dev     # inicia Vite
+```
+Abrir: http://localhost:5173
 
-**Use GitHub Codespaces**
+## 🔐 Variáveis de Ambiente
+Copie `.env.example` para `.env` dentro de `vibra-sound-hub-main/`:
+```sh
+cp vibra-sound-hub-main/.env.example vibra-sound-hub-main/.env
+```
+Valores padrão funcionam (anon key pública). Em produção use chaves próprias do seu projeto Supabase.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## 📦 Scripts (na raiz)
+| Script | Ação |
+|--------|------|
+| `npm run setup` | Instala dependências do app |
+| `npm run dev` | Dev server (Vite) |
+| `npm run build` | Build produção |
+| `npm run preview` | Preview local do build |
+| `npm run lint` | ESLint |
 
-## What technologies are used for this project?
-
-This project is built with:
-
+## 🛠 Stack
+- React 18
 - Vite
 - TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- Tailwind CSS + tailwind-merge + animate
+- shadcn-ui / Radix Primitives
+- Supabase (auth + storage futuramente)
+- React Query
 
-## How can I deploy this project?
+## 🧪 Qualidade
+Não há testes ainda. Sugestão: adicionar vitest + @testing-library/react para componentes principais.
 
-Simply open [Lovable](https://lovable.dev/projects/a46e7037-af7f-4819-8249-c8291160187d) and click on Share -> Publish.
+## 🌐 Deploy (Vercel)
+Configuração recomendada:
+| Campo | Valor |
+|-------|-------|
+| Root Directory | `vibra-sound-hub-main` |
+| Install Command | `npm install` (ou usar root com `npm run setup`) |
+| Build Command | `npm run build` |
+| Output Directory | `dist` |
+| Node Version | 18+ |
 
-## Can I connect a custom domain to my Lovable project?
+Adicionar as mesmas variáveis (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`).
 
-Yes, you can!
+## 🔒 Segurança
+- Chave anon do Supabase pode ficar no cliente.
+- Evite expor service_role.
+- Considere RLS nas tabelas antes de abrir upload público.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## 📌 Roadmap Sugerido
+- [ ] Página de listagem de músicas real (dados do Supabase)
+- [ ] Upload de faixas (armazenamento + metadados)
+- [ ] Likes / Play count
+- [ ] Busca e filtros
+- [ ] Testes unitários básicos
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## 🤝 Contribuição
+Branches: feature/*, fix/*, chore/* → Pull Request → main.
+
+## 🧽 Limpeza do Histórico
+Histórico foi reescrito para remover `node_modules`. Evite commitar dependências.
+
+## 📄 Licença
+Definir (MIT sugerido). Adicionar `LICENSE` se for abrir público.
+
+---
+Made with focus on DX & UI consistency.
