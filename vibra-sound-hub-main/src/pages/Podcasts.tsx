@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { usePlayer } from '@/context/PlayerContext';
-import { Podcast, PlayCircle, PauseCircle, Loader2 } from 'lucide-react';
+import { Podcast, Play, Pause, Loader2 } from 'lucide-react';
 
 interface PodcastEpisode { id: string; title: string; description: string; audio_url: string; podcast: string; published_at: string; duration?: number; }
 
@@ -40,13 +40,14 @@ const Podcasts: React.FC = () => {
             <div className="flex items-start gap-4">
               <button
                 onClick={()=> isCurrent(ep) ? toggle() : play({ id: ep.id, title: ep.title, artist: ep.podcast, url: ep.audio_url })}
-                className="mt-1 inline-flex items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20 w-12 h-12 shrink-0 transition"
+                className={`mt-1 inline-flex items-center justify-center rounded-full w-12 h-12 shrink-0 transition relative overflow-hidden group ${isCurrent(ep)? 'bg-primary text-primary-foreground shadow-lg hover:bg-primary/90' : 'bg-primary/10 text-primary hover:bg-primary/20'}`}
                 aria-label={isCurrent(ep) ? (playing ? 'Pausar episódio' : 'Retomar episódio') : 'Reproduzir episódio'}
               >
+                <span className="absolute inset-0 opacity-0 group-hover:opacity-10 bg-white transition-opacity" />
                 {isCurrent(ep) ? (
-                  playing ? <PauseCircle className="h-8 w-8" /> : <PlayCircle className="h-8 w-8" />
+                  playing ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6 ml-0.5" />
                 ) : (
-                  <PlayCircle className="h-8 w-8" />
+                  <Play className="h-6 w-6 ml-0.5" />
                 )}
               </button>
               <div className="flex-1">
