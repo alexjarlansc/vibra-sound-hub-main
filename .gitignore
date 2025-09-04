@@ -1,0 +1,38 @@
+# Root ignore consolidado
+node_modules/
+dist/
+.vite/
+.cache/
+.vercel/
+.next/
+*.log
+logs/
+
+# Locks opcionais
+bun.lockb
+
+# Ambiente
+.env
+.env.*
+!.env.example
+
+# IDE / SO
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+
+# Test / coverage
+coverage/
+
+# Supabase local
+supabase/.branches
+supabase/.temp
+
+# Misc
+*.swp
+*.tar.gz
+*.zip
