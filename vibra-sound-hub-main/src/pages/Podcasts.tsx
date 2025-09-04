@@ -36,7 +36,7 @@ const Podcasts: React.FC = () => {
       )}
       <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
         {episodes.map(ep => (
-          <div key={ep.id} className="group relative rounded-xl border border-border/60 bg-gradient-to-br from-background/60 to-background/20 backdrop-blur-sm p-5 shadow-sm hover:shadow-md transition">
+          <div key={ep.id} className={`group relative rounded-xl border bg-gradient-to-br from-background/60 to-background/20 backdrop-blur-sm p-5 shadow-sm hover:shadow-md transition ${isCurrent(ep) ? 'border-primary/60 ring-2 ring-primary/30' : 'border-border/60'}`}> 
             <div className="flex items-start gap-4">
               <button
                 onClick={()=> isCurrent(ep) ? toggle() : play({ id: ep.id, title: ep.title, artist: ep.podcast, url: ep.audio_url })}

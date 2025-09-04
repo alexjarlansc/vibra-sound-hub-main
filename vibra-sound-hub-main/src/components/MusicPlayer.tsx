@@ -12,6 +12,8 @@ const MusicPlayer = () => {
   const handleVolume = useCallback((vals:number[])=>{ const v = vals[0]; setVolume(v/100); }, [setVolume]);
   const volPct = Math.round(volume*100);
 
+  if(!current) return null;
+
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50">
       {/* Camada de blur + glass */}
@@ -27,9 +29,9 @@ const MusicPlayer = () => {
             </div>
             <div className="min-w-0">
               <h4 className="text-foreground font-semibold text-base truncate">
-                Você Não Me Esqueceu
+                {current?.title || 'Sem título'}
               </h4>
-              <p className="text-muted-foreground text-sm truncate">Wesley Safadão</p>
+              <p className="text-muted-foreground text-sm truncate">{current?.artist || 'Desconhecido'}</p>
             </div>
             <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-foreground ml-2">
               <Heart className="h-4 w-4" />

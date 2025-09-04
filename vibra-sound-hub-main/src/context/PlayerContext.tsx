@@ -45,6 +45,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Core play function
   const play = useCallback((track: PlayerTrack, opts?: { replaceQueue?: boolean }) => {
     if(!audioRef.current) return;
+    // Otimista: já marca como tocando para UI exibir Pause imediatamente
+    setPlaying(true);
     if(opts?.replaceQueue){
       setQueue([track]);
       setIndex(0);
