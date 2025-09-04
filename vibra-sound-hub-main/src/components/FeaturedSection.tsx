@@ -1,11 +1,11 @@
 import MusicCard from "./MusicCard";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, TrendingUp } from "lucide-react";
 import { useState, useMemo, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTrendingAlbums } from "@/hooks/useTrendingAlbums";
+import { useTrendingTracks } from "@/hooks/useTrendingTracks";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -15,39 +15,16 @@ const FeaturedSection = () => {
   const [openAlbum, setOpenAlbum] = useState<{ id?:string; title:string; artist:string }|null>(null);
   const [openTrendingAll, setOpenTrendingAll] = useState(false);
   const { data: trendingData, loading: loadingTrending, reload } = useTrendingAlbums({ limit: 12 });
+  const { data: trendingTracks, loading: loadingTracks } = useTrendingTracks({ limit: 12 });
   const { userId } = useAuth();
   const { toast } = useToast();
-  const featuredAlbums = [
-    { title: "Cowboy Promocional 2025", artist: "Junior", colorVariant: 1 as const },
-    { title: "Ao Vivo no Forró", artist: "Márcia Fellipe", colorVariant: 2 as const },
-    { title: "Do Velho Testamento", artist: "Tierry", colorVariant: 3 as const },
-    { title: "Agora Chegou a Hora", artist: "MC Hariel", colorVariant: 4 as const },
-    { title: "Setembro", artist: "Zé Neto", colorVariant: 5 as const },
-    { title: "Lembrar de Você", artist: "Gusttavo Lima", colorVariant: 6 as const },
-    { title: "Estrelas Vivem", artist: "Luan Santana", colorVariant: 1 as const },
-    { title: "Nova Músicas", artist: "Matheus & Kauan", colorVariant: 2 as const },
-  ];
+  type ColorVariant = 1|2|3|4|5|6;
+  interface FeaturedItem { id?: string; title:string; artist:string; colorVariant: ColorVariant; }
+  // Dados mock removidos: agora listas vazias até integrar fonte real.
+  const featuredAlbums: FeaturedItem[] = useMemo(() => ([]), []);
+  const hotAlbums: FeaturedItem[] = [];
 
-  const hotAlbums = [
-    { title: "Viva a Bagaceira", artist: "Wesley Safadão", colorVariant: 3 as const },
-    { title: "Cicatrizes", artist: "Wesley Safadão", colorVariant: 4 as const },
-    { title: "Gente Quieta", artist: "TBT Ws", colorVariant: 5 as const },
-    { title: "Delta G", artist: "TBT Ws", colorVariant: 6 as const },
-    { title: "Nem As", artist: "Wesley Safadão", colorVariant: 1 as const },
-    { title: "Estrelas Vivem", artist: "TBT Ws", colorVariant: 2 as const },
-  ];
-
-  const tendencias100 = useMemo(()=>{
-    const base = [...featuredAlbums];
-    // gerar lista até 100 itens repetindo base
-    const list: { title:string; artist:string; colorVariant: any }[] = [];
-    let i=0; while(list.length < 100){
-      const b = base[i % base.length];
-      list.push({ ...b, title: b.title + (list.length>=base.length?` #${list.length+1}`:"") });
-      i++;
-    }
-    return list;
-  },[featuredAlbums]);
+  const tendencias100: FeaturedItem[] = useMemo(()=>[],[]);
 
   const fakeTracks = (albumTitle:string) => Array.from({length:8},(_,i)=>({
     id: i+1,
@@ -55,17 +32,23 @@ const FeaturedSection = () => {
     duration: `${3+i%2}:${(10+i*7)%60}`.padStart(4,'0')
   }));
 
+  const safeRpc = async <T=unknown>(fn: string, params: Record<string, unknown>) => {
+    const client = supabase as unknown as { rpc: (f:string, p:Record<string,unknown>)=>Promise<{ data:T|null; error:{ message:string }|null }> };
+    const { error } = await client.rpc(fn, params);
+    return error;
+  };
+
   const handleLike = useCallback(async (albumId?:string)=>{
-    if(!albumId){ return; }
+    if(!albumId) return;
     if(!userId){ toast({ title: 'Faça login para curtir.' }); return; }
-    const { error } = await (supabase as any).rpc('toggle_album_like', { p_album: albumId });
+    const error = await safeRpc('toggle_album_like', { p_album: albumId });
     if(error){ toast({ title: 'Erro curtida', description: error.message, variant: 'destructive'}); return; }
     reload();
   },[userId, toast, reload]);
 
   const handleDownload = useCallback(async (albumId?:string)=>{
     if(!albumId) return;
-    const { error } = await (supabase as any).rpc('register_album_download', { p_album: albumId });
+    const error = await safeRpc('register_album_download', { p_album: albumId });
     if(error){ toast({ title: 'Erro download', description: error.message, variant: 'destructive'}); return; }
     reload();
   },[reload, toast]);
@@ -75,6 +58,15 @@ const FeaturedSection = () => {
     toast({ title: 'Play simulado (integre player real depois).' });
   },[toast]);
 
+  interface TrackLike { id?: string; name?: string; title?: string; artist?: string; likes_count?: number; }
+
+  const displayedMusicItems: TrackLike[] = useMemo(()=>{
+    const primary: TrackLike[] = (trendingTracks.length
+      ? trendingTracks
+      : (trendingData.length ? trendingData : [])) as TrackLike[];
+    return primary.slice(0,12);
+  },[trendingTracks, trendingData]);
+
   return (
     <div className="space-y-16">
       {/* Trending Section */}
@@ -82,30 +74,40 @@ const FeaturedSection = () => {
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center space-x-3">
             <TrendingUp className="h-6 w-6 text-primary" />
-            <h2 className="text-3xl font-bold text-foreground">Trending Agora</h2>
+            <h2 className="text-3xl font-bold text-foreground">Músicas em Alta</h2>
           </div>
           <Button onClick={()=> setOpenTrendingAll(true)} variant="ghost" className="text-primary hover:bg-primary/5">
-            Ver Todos
+            Top 100
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
-          {(trendingData.length ? trendingData : featuredAlbums.slice(0,6)).map((album: any, index:number) => (
-            <MusicCard
-              key={album.id || index}
-              id={album.id}
-              title={album.name || album.title}
-              artist={album.artist || 'Artista'}
-              colorVariant={(album.colorVariant || ((index%6)+1)) as any}
-              size="medium"
-              onClick={()=> setOpenAlbum({ id: album.id, title: album.name || album.title, artist: album.artist || 'Artista' })}
-              onLike={()=> handleLike(album.id)}
-              onDownload={()=> handleDownload(album.id)}
-              onPlay={()=> handlePlay(album.id)}
-              likeCount={album.likes_count}
-            />
-          ))}
-        </div>
+        {displayedMusicItems.length === 0 ? (
+          <div className="p-10 text-center text-sm text-muted-foreground border rounded-lg bg-background/40">
+            Nenhuma música em alta no momento.
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
+            {displayedMusicItems.map((item, index) => {
+                const title = item.name || item.title || '—';
+                const colorVariant = ((index%6)+1) as ColorVariant;
+                return (
+                  <MusicCard
+                    key={item.id || index}
+                    id={item.id}
+                    title={title}
+                    artist={item.artist || 'Artista'}
+                    colorVariant={colorVariant}
+                    size="medium"
+                    onClick={()=> setOpenAlbum({ id: item.id, title, artist: item.artist || 'Artista' })}
+                    onLike={()=> handleLike(item.id)}
+                    onDownload={()=> handleDownload(item.id)}
+                    onPlay={()=> handlePlay(item.id)}
+                    likeCount={item.likes_count}
+                  />
+                );
+              })}
+          </div>
+        )}
       </div>
 
       {/* Hot Albums */}
@@ -117,47 +119,27 @@ const FeaturedSection = () => {
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-          {hotAlbums.map((album, index) => (
-            <MusicCard
-              key={index}
-              title={album.title}
-              artist={album.artist}
-              colorVariant={album.colorVariant}
-              size="medium"
-        onClick={()=> setOpenAlbum({ title: album.title, artist: album.artist })}
-            />
-          ))}
-        </div>
+        {hotAlbums.length === 0 ? (
+          <div className="p-10 text-center text-sm text-muted-foreground border rounded-lg bg-background/40">
+            Nenhum álbum em alta no momento.
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+            {hotAlbums.map((album, index) => (
+              <MusicCard
+                key={index}
+                title={album.title}
+                artist={album.artist}
+                colorVariant={album.colorVariant}
+                size="medium"
+                onClick={()=> setOpenAlbum({ title: album.title, artist: album.artist })}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Call to Action Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="bg-gradient-to-r from-orange-500/80 to-red-500/80 text-white backdrop-blur-sm">
-          <CardContent className="p-8 text-center">
-            <h3 className="text-2xl font-bold mb-3">🔔 Fique por Dentro!</h3>
-            <p className="text-lg opacity-90 mb-4">Seja notificado sobre os últimos lançamentos</p>
-            <Button variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-white/30">
-              Inscrever-se
-            </Button>
-          </CardContent>
-        </Card>
-        
-        <Card className="bg-gradient-to-r from-blue-500/80 to-blue-600/80 text-white backdrop-blur-sm">
-          <CardContent className="p-8 text-center">
-            <h3 className="text-2xl font-bold mb-3">📱 App Mobile</h3>
-            <p className="text-lg opacity-90 mb-4">Leve sua música para qualquer lugar</p>
-            <div className="flex justify-center space-x-4">
-              <Button variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-white/30">
-                iOS
-              </Button>
-              <Button variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-white/30">
-                Android
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+  {/* CTA removido: agora em CtaSection no final da página */}
       {/* Dialog álbum individual */}
       <Dialog open={!!openAlbum} onOpenChange={(o)=> !o && setOpenAlbum(null)}>
         <DialogContent className="max-w-xl">
@@ -198,17 +180,23 @@ const FeaturedSection = () => {
           </DialogHeader>
           <ScrollArea className="max-h-[70vh] pr-4">
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {tendencias100.map((a,i)=>(
-                <MusicCard
-                  key={i}
-                  title={a.title}
-                  artist={a.artist}
-                  colorVariant={a.colorVariant}
-                  size="small"
-                  onClick={()=> { setOpenTrendingAll(false); setOpenAlbum({ title:a.title, artist:a.artist }); }}
-                  disableActions
-                />
-              ))}
+              {tendencias100.length === 0 ? (
+                <div className="col-span-full text-center text-sm text-muted-foreground py-8">
+                  Nenhum item para exibir.
+                </div>
+              ) : (
+                tendencias100.map((a,i)=>(
+                  <MusicCard
+                    key={i}
+                    title={a.title}
+                    artist={a.artist}
+                    colorVariant={a.colorVariant}
+                    size="small"
+                    onClick={()=> { setOpenTrendingAll(false); setOpenAlbum({ title:a.title, artist:a.artist }); }}
+                    disableActions
+                  />
+                ))
+              )}
             </div>
           </ScrollArea>
         </DialogContent>

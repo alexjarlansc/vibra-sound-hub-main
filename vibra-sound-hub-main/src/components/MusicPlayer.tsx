@@ -9,9 +9,13 @@ const MusicPlayer = () => {
   const [volume, setVolume] = useState([80]);
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-lg border-t border-border/50 z-50">
-      <div className="container mx-auto px-6 py-4">
-        <div className="flex items-center justify-between">
+    <div className="fixed bottom-0 left-0 right-0 z-50">
+      {/* Camada de blur + glass */}
+  <div className="relative overflow-hidden border-t supports-[backdrop-filter]:bg-background/20 bg-background/50 supports-[backdrop-filter]:backdrop-blur-xl backdrop-blur-md border-white/10 shadow-[0_-2px_20px_-4px_rgba(0,0,0,0.25)] before:absolute before:inset-0 before:pointer-events-none before:bg-gradient-to-tr before:from-white/10 before:via-white/5 before:to-transparent after:absolute after:inset-0 after:bg-[radial-gradient(circle_at_30%_120%,rgba(255,255,255,0.15),transparent_60%)]">
+        {/* Borda interna sutil */}
+        <div className="absolute inset-0 border-t border-white/5 pointer-events-none" />
+        <div className="container mx-auto px-6 py-4 relative">
+          <div className="flex items-center justify-between">
           {/* Current Song Info */}
           <div className="flex items-center space-x-4 min-w-0 flex-1">
             <div className="w-16 h-16 bg-gradient-primary rounded-2xl flex items-center justify-center shadow-lg">
@@ -85,6 +89,7 @@ const MusicPlayer = () => {
                 className="w-24"
               />
             </div>
+          </div>
           </div>
         </div>
       </div>

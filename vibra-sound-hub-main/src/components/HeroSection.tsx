@@ -47,9 +47,9 @@ const HeroSection = () => {
                     <Badge className="bg-white/20 text-white border-white/30 mb-4">
                       Album em Destaque
                     </Badge>
-                    <h3 className="text-2xl font-bold mb-2">COWBOY</h3>
-                    <h4 className="text-xl font-medium mb-1">PROMOCIONAL 2025</h4>
-                    <p className="text-lg opacity-90">Junior</p>
+                    <h3 className="text-2xl font-bold mb-2">Título do Álbum</h3>
+                    <h4 className="text-xl font-medium mb-1">Subtítulo / Ano</h4>
+                    <p className="text-lg opacity-90">Artista</p>
                   </div>
                   
                   <div className="flex items-center justify-between">

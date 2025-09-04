@@ -16,8 +16,8 @@ const Navigation = () => {
   ];
 
   return (
-    <nav className="bg-background/80 backdrop-blur-sm border-b border-border/30">
-      <div className="container mx-auto px-6">
+  <nav className="supports-[backdrop-filter]:bg-background/20 bg-background/55 backdrop-blur-md supports-[backdrop-filter]:backdrop-blur-xl border-b border-white/10 shadow-[0_2px_14px_-6px_rgba(0,0,0,0.2)] relative before:absolute before:inset-0 before:pointer-events-none before:bg-gradient-to-tr before:from-white/6 before:via-transparent before:to-transparent after:absolute after:inset-0 after:pointer-events-none after:bg-[radial-gradient(circle_at_10%_0%,rgba(255,255,255,0.15),transparent_55%)]">
+  <div className="container mx-auto px-6 relative z-10">
         <div className="flex items-center justify-between py-4">
           <Tabs defaultValue="descobrir" className="w-full">
             <TabsList className="grid w-fit grid-cols-6 bg-muted/30 h-12 p-1 rounded-full">

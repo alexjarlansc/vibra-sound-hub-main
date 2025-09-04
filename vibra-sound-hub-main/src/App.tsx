@@ -6,6 +6,9 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import MyAlbums from "./pages/MyAlbums";
+import TopMusics from "./pages/TopMusics";
+import Profile from "./pages/Profile";
+import RootLayout from "@/layouts/RootLayout";
 
 const queryClient = new QueryClient();
 
@@ -16,9 +19,12 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="/meus-albuns" element={<MyAlbums />} />
+          <Route element={<RootLayout />}> {/* Rotas que compartilham header/player */}
+            <Route path="/" element={<Index />} />
+            <Route path="/meus-albuns" element={<MyAlbums />} />
+            <Route path="/top-musicas" element={<TopMusics />} />
+            <Route path="/perfil" element={<Profile />} />
+          </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

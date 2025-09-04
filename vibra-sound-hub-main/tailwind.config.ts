@@ -1,11 +1,16 @@
 import type { Config } from "tailwindcss";
+import animate from "tailwindcss-animate";
 
-export default {
-	darkMode: ["class"],
+// Observações:
+// - Removidos caminhos inexistentes (pages, app, components na raiz) pois o código está concentrado em ./src
+// - Adicionado index.html para que classes utilitárias usadas nele sejam coletadas
+// - Mantido prefix vazio
+// - Plugin importado via ESM ao invés de require para melhor suporte em TS
+
+const config: Config = {
+	darkMode: "class",
 	content: [
-		"./pages/**/*.{ts,tsx}",
-		"./components/**/*.{ts,tsx}",
-		"./app/**/*.{ts,tsx}",
+		"./index.html",
 		"./src/**/*.{ts,tsx}",
 	],
 	prefix: "",
@@ -105,5 +110,7 @@ export default {
 			}
 		}
 	},
-	plugins: [require("tailwindcss-animate")],
-} satisfies Config;
+	plugins: [animate],
+};
+
+export default config;
