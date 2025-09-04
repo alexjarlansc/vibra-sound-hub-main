@@ -1,4 +1,5 @@
 import { Search, Upload, LogIn, User, Bell, Menu, ChevronRight, Heart, Settings, LogOut, FileMusic, PlusSquare, User2, ListMusic, Radio } from "lucide-react";
+import GlobalSearchModal from '@/components/GlobalSearchModal';
 import { BRAND } from "@/config/branding";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +19,7 @@ const Header = () => {
   const [openUpload, setOpenUpload] = useState(false);
   const [openUserMenu, setOpenUserMenu] = useState(false);
   const navigate = useNavigate();
+  const [openSearch, setOpenSearch] = useState(false);
 
   // Deriva nome amigável do usuário
   const displayName = (() => {
@@ -80,6 +82,7 @@ const Header = () => {
             {/* Ícones: Busca / Playlists / Podcasts ao vivo */}
             <button
               aria-label="Buscar"
+              onClick={()=> setOpenSearch(true)}
               className="hidden md:flex h-10 w-10 rounded-full items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition"
             >
               <Search className="h-5 w-5" />
@@ -90,12 +93,13 @@ const Header = () => {
               className="hidden md:flex h-10 w-10 rounded-full items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition"
             >
               <ListMusic className="h-5 w-5" />
-            </button>
             <button
-              onClick={()=>{/* Futuro: rota podcasts */}}
-              aria-label="Podcasts ao vivo"
-              className="hidden md:flex relative h-10 w-10 rounded-full items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition"
+              aria-label="Buscar"
+              onClick={()=> setOpenSearch(true)}
+              className="hidden md:flex h-10 w-10 rounded-full items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition"
             >
+              <Search className="h-5 w-5" />
+            </button>
               <span className="relative inline-flex">
                 <Radio className="h-5 w-5" />
                 <span className="absolute -top-1 -right-1 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-background animate-pulse" />
@@ -232,7 +236,8 @@ const Header = () => {
           </div>
         </SheetContent>
       </Sheet>
-    </header>
+  <GlobalSearchModal open={openSearch} onOpenChange={setOpenSearch} onNavigate={navigate} />
+  </header>
   );
 };
 
