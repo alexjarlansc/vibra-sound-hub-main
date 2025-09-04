@@ -180,6 +180,10 @@ export const UploadMusicModal: React.FC<UploadMusicModalProps> = ({ open, onOpen
 
   const acceptAttr = [ ...ACCEPT.audio, ...ACCEPT.archives ].join(',');
 
+  if(import.meta.env.DEV){
+    // log mínimo de re-render debug
+    try { console.debug('[UploadMusicModal] render', { open, files: files.length, genre }); } catch{}
+  }
   return (
     <Dialog open={open} onOpenChange={(o)=>{ if(!loading) onOpenChange(o); }}>
       <DialogContent className="max-w-lg">
@@ -193,7 +197,7 @@ export const UploadMusicModal: React.FC<UploadMusicModalProps> = ({ open, onOpen
           </div>
           <div className="space-y-1">
             <label className="text-sm font-medium">Gênero Musical</label>
-            <Select value={genre} onValueChange={setGenre}>
+            <Select value={genre} onValueChange={(v)=>{ if(import.meta.env.DEV) console.debug('[UploadMusicModal] genre change', v); try { setGenre(v); } catch(err){ if(import.meta.env.DEV) console.error('[UploadMusicModal] setGenre error', err); } }}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Selecionar" />
               </SelectTrigger>

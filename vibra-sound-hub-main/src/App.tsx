@@ -15,6 +15,7 @@ const Playlists = lazy(()=> import('./pages/Playlists'));
 const AdminVerifications = lazy(()=> import('./pages/AdminVerifications'));
 const BecomeAdmin = lazy(()=> import('./pages/BecomeAdmin'));
 import RootLayout from "@/layouts/RootLayout";
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <PlayerProvider>
+          <ErrorBoundary>
         <Routes>
           <Route element={<RootLayout />}> {/* Rotas que compartilham header/player */}
             <Route path="/" element={<Suspense fallback={<div className='p-10 text-center text-sm text-muted-foreground'>Carregando...</div>}><Index /></Suspense>} />
@@ -38,7 +40,8 @@ const App = () => (
           </Route>
           <Route path="*" element={<Suspense fallback={<div className='p-10 text-center text-sm text-muted-foreground'>Carregando...</div>}><NotFound /></Suspense>} />
   </Routes>
-  </PlayerProvider>
+          </ErrorBoundary>
+        </PlayerProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
