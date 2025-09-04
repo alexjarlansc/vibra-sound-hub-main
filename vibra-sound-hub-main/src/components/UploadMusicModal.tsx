@@ -96,12 +96,28 @@ export const UploadMusicModal: React.FC<UploadMusicModalProps> = ({ open, onOpen
         const path = `covers/${albumInsert.id}-${Date.now()}-${cover.name}`;
         try {
           coverUrl = await uploadFileWithCancel(BUCKET, path, cover, abortRef.current.signal);
-      await (supabase.from('albums') as any).update({ cover_url: coverUrl }).eq('id', albumInsert.id);
+          await (supabase.from('albums') as any).update({ cover_url: coverUrl }).eq('id', albumInsert.id);
         } catch(err){
-      if(isAbortError(err)) throw { name: 'AbortError', albumId: albumInsert.id } as AbortLikeWithAlbum;
+          if(isAbortError(err)) throw { name: 'AbortError', albumId: albumInsert.id } as AbortLikeWithAlbum;
           const msg = err instanceof Error ? err.message : 'erro desconhecido';
           if(/Bucket not found/i.test(msg)){
             throw new Error('Bucket de storage não encontrado. Crie o bucket "'+BUCKET+'" no painel Supabase (Storage) e permita acesso público.');
+          }
+          if(/row level security/i.test(msg) || /violates row-level security/i.test(msg)){
+            const hint = `Permissão negada ao salvar capa. Crie políticas de Storage para o bucket "${BUCKET}". Exemplo SQL:
+
+-- permitir upload por usuários autenticados
+create policy "music-insert" on storage.objects for insert with check (
+  bucket_id = '${BUCKET}' AND auth.role() = 'authenticated'
+);
+-- permitir leitura pública
+create policy "music-select" on storage.objects for select using (
+  bucket_id = '${BUCKET}'
+);
+
+-- Depois, marque o bucket como Public (Storage > bucket > toggle Public).
+`;
+            throw new Error(hint);
           }
           throw new Error('Falha ao enviar capa: '+ msg);
         }
@@ -139,6 +155,9 @@ export const UploadMusicModal: React.FC<UploadMusicModalProps> = ({ open, onOpen
           const msg = err instanceof Error ? err.message : 'erro desconhecido';
           if(/Bucket not found/i.test(msg)){
             throw new Error('Bucket de storage não encontrado. Crie o bucket "'+BUCKET+'" no painel Supabase (Storage) e permita acesso público.');
+          }
+          if(/row level security/i.test(msg) || /violates row-level security/i.test(msg)){
+            throw new Error('Permissão negada ao salvar arquivo. Adicione políticas de INSERT/SELECT no bucket "'+BUCKET+'". Veja instruções exibidas no erro da capa.');
           }
           throw new Error('Falha ao enviar arquivo '+ f.name + ': ' + msg);
         }
