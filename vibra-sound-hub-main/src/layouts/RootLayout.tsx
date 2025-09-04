@@ -9,7 +9,6 @@ import MiniPlayer from '@/components/MiniPlayer';
 export default function RootLayout(){
   const { pathname } = useLocation();
   const showNav = false; // Navegação separada desativada (ícones movidos para Header)
-  const hidePlayers = pathname.startsWith('/podcasts');
   // Garante que ao entrar em qualquer página o scroll inicial seja o topo
   useEffect(()=>{
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
@@ -23,8 +22,8 @@ export default function RootLayout(){
         {/* bottom padding para player; top suave */}
         <Outlet />
       </main>
-  {!hidePlayers && <MusicPlayer />}
-  {!hidePlayers && <MiniPlayer />}
+  <MusicPlayer />
+  <MiniPlayer />
     </div>
   );
 }

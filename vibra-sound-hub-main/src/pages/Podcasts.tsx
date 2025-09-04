@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { usePlayer } from '@/context/PlayerContext';
-import { Podcast, Loader2 } from 'lucide-react';
+import { Podcast, Loader2, Play, Pause } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface PodcastEpisode { id: string; title: string; description: string; audio_url: string; podcast: string; published_at: string; duration?: number; }
 
@@ -12,7 +13,7 @@ const mockEpisodes: PodcastEpisode[] = [
 ];
 
 const Podcasts: React.FC = () => {
-  const { clear } = usePlayer();
+  const { clear, play, current, playing, toggle } = usePlayer();
   const [episodes, setEpisodes] = useState<PodcastEpisode[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -26,13 +27,30 @@ const Podcasts: React.FC = () => {
 
   return (
     <div className="container mx-auto px-6 py-10">
-      <div className="mb-8 flex items-center gap-3">
-        <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg">
-          <Podcast className="h-8 w-8" />
+      <div className="mb-10 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg">
+            <Podcast className="h-8 w-8" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Podcasts</h1>
+            <p className="text-sm text-muted-foreground">Episódios recentes e conteúdos em áudio.</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Podcasts</h1>
-          <p className="text-sm text-muted-foreground">Episódios recentes e conteúdos em áudio.</p>
+        <div className="flex items-center gap-4">
+          <Button
+            size="lg"
+            className="h-12 px-8 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg flex items-center gap-2"
+            onClick={()=>{
+              if(current && mockEpisodes.find(e=> e.id===current.id)) { toggle(); return; }
+              const first = mockEpisodes[0];
+              if(first) play({ id:first.id, title:first.title, artist:first.podcast, url:first.audio_url }, { replaceQueue:true });
+            }}
+            aria-label={playing? 'Pausar' : 'Tocar'}
+          >
+            {playing && current && mockEpisodes.some(e=> e.id===current.id) ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
+            <span>{playing && current && mockEpisodes.some(e=> e.id===current.id) ? 'Pausar' : 'Tocar'}</span>
+          </Button>
         </div>
       </div>
       {loading && (
