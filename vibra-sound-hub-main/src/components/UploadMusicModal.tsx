@@ -76,7 +76,7 @@ export const UploadMusicModal: React.FC<UploadMusicModalProps> = ({ open, onOpen
       setProgress(2);
       setWasAborted(false);
       abortRef.current = new AbortController();
-  const BUCKET = import.meta.env.VITE_SUPABASE_BUCKET_MUSIC || 'music';
+  const BUCKET = import.meta.env.VITE_SUPABASE_MUSIC_BUCKET || import.meta.env.VITE_SUPABASE_BUCKET_MUSIC || 'music';
   // cria album
   const albumPayload: TablesInsert<'albums'> = { name: albumName, genre: genre || null, cover_url: null, user_id: userId || null };
   // Workaround de tipagem: codegen atual está inferindo 'never' para inserts; usar cast any
