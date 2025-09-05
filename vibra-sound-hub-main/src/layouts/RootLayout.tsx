@@ -2,7 +2,6 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import Header from '@/components/Header';
 import MusicPlayer from '@/components/MusicPlayer';
-import MiniPlayer from '@/components/MiniPlayer';
 
 // Layout global com Header e Player fixos em todas as páginas
 // Main recebe padding-top e padding-bottom para não ser encoberto
@@ -23,7 +22,6 @@ export default function RootLayout(){
         <Outlet />
       </main>
   <MusicPlayer />
-  <MiniPlayer />
     </div>
   );
 }

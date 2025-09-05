@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useRef, useState, useCallback, useEffect } from 'react';
 
-export interface PlayerTrack { id: string; title: string; artist?: string; url: string; albumId?: string | null; }
+export interface PlayerTrack { id: string; title: string; artist?: string; url: string; albumId?: string | null; coverUrl?: string | null; }
 
 interface PlayerState {
   current?: PlayerTrack;
@@ -10,8 +10,11 @@ interface PlayerState {
   duration: number; // seconds
   volume: number; // 0-1
   buffered: number; // 0-1
+  coverUrl?: string | null; // capa do álbum atual
+  loop: boolean; // repetir faixa atual
   play: (track: PlayerTrack, opts?: { replaceQueue?: boolean }) => void;
   playQueue: (tracks: PlayerTrack[], startIndex?: number) => void;
+  addToQueue: (track: PlayerTrack) => void;
   toggle: () => void;
   pause: () => void;
   resume: () => void;
@@ -20,6 +23,7 @@ interface PlayerState {
   seek: (ratio: number) => void;
   setVolume: (v: number) => void;
   clear: () => void;
+  toggleLoop: () => void;
 }
 
 const PlayerContext = createContext<PlayerState | undefined>(undefined);
@@ -33,11 +37,18 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [duration, setDuration] = useState(0);
   const [buffered, setBuffered] = useState(0);
   const [volume, setVolumeState] = useState(0.8);
+  const [coverUrl, setCoverUrl] = useState<string | null>(null);
+  const [loop, setLoop] = useState(false);
+  const coverCache = useRef<Record<string, string | null>>({});
 
   // Ensure audio element
-  if(!audioRef.current && typeof Audio !== 'undefined'){
-    audioRef.current = new Audio();
-    audioRef.current.preload = 'auto';
+  if(!audioRef.current && typeof window !== 'undefined'){
+    const w = window as any;
+    if(!w.__globalAudio){
+      w.__globalAudio = new Audio();
+      w.__globalAudio.preload = 'auto';
+    }
+    audioRef.current = w.__globalAudio as HTMLAudioElement;
   }
 
   const current = index >=0 ? queue[index] : undefined;
@@ -45,28 +56,36 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Core play function
   const play = useCallback((track: PlayerTrack, opts?: { replaceQueue?: boolean }) => {
     if(!audioRef.current) return;
-    // Otimista: já marca como tocando para UI exibir Pause imediatamente
+    try { audioRef.current.pause(); } catch {}
+    audioRef.current.currentTime = 0;
     setPlaying(true);
     if(opts?.replaceQueue){
       setQueue([track]);
       setIndex(0);
-    } else {
-      setQueue(q => {
-        const existing = q.findIndex(t => t.id === track.id);
-        if(existing !== -1){
-          setIndex(existing);
-          return q;
-        }
-        setIndex(q.length);
-        return [...q, track];
-      });
+      return;
     }
+    setQueue(q => {
+      const existing = q.findIndex(t => t.id === track.id);
+      if(existing !== -1){
+        setIndex(existing);
+        return q;
+      }
+      setIndex(q.length);
+      return [...q, track];
+    });
   },[]);
 
   const playQueue = useCallback((tracks: PlayerTrack[], startIndex=0) => {
     if(!tracks.length) return;
     setQueue(tracks);
     setIndex(Math.min(startIndex, tracks.length-1));
+  },[]);
+
+  const addToQueue = useCallback((track: PlayerTrack) => {
+    setQueue(q => {
+      if(q.find(t=> t.id===track.id)) return q; // evita duplicar mesmo id
+      return [...q, track];
+    });
   },[]);
 
   const pause = useCallback(()=>{ if(audioRef.current){ audioRef.current.pause(); setPlaying(false);} },[]);
@@ -103,19 +122,49 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Load track when index changes
   useEffect(()=>{
     if(!audioRef.current) return;
-    const track = current;
-    if(!track){ pause(); return; }
-    audioRef.current.src = track.url;
-    audioRef.current.load();
-    audioRef.current.play().then(()=> setPlaying(true)).catch(()=> setPlaying(false));
+  const track = current;
+  if(!track){ pause(); return; }
+  const audio = audioRef.current;
+  // Evita tocar duas ao mesmo tempo (garante pause antes de setar src)
+  try { audio.pause(); } catch {}
+  audio.src = track.url;
+  audio.load();
+  audio.play().then(()=> setPlaying(true)).catch(()=> setPlaying(false));
   },[current, pause]);
+
+  // Resolve capa (album -> cover_url) quando muda a faixa
+  useEffect(()=>{
+    const track = current;
+    if(!track || !track.albumId){ setCoverUrl(null); return; }
+    const id = track.albumId;
+    if(coverCache.current[id] !== undefined){ setCoverUrl(coverCache.current[id]); return; }
+    let active = true;
+    import('@/integrations/supabase/client').then(async ({ supabase })=>{
+      try {
+        const { data } = await supabase.from('albums').select('cover_url').eq('id', id).single();
+        if(!active) return;
+        const url = (data as any)?.cover_url || null;
+        coverCache.current[id] = url;
+        setCoverUrl(url);
+      } catch {
+        if(active){ coverCache.current[id] = null; setCoverUrl(null); }
+      }
+    });
+    return ()=> { active = false; };
+  },[current]);
 
   // Attach events
   useEffect(()=>{
     const audio = audioRef.current;
     if(!audio) return;
     const onTime = () => { if(audio.duration){ setProgress(audio.currentTime / audio.duration); setDuration(audio.duration); } };
-    const onEnded = () => { next(); };
+    const onEnded = () => {
+      if(loop){
+        if(audio.duration){ audio.currentTime = 0; audio.play().catch(()=>{}); }
+      } else {
+        next();
+      }
+    };
     const onProgress = () => {
       try {
         if(audio.buffered.length){
@@ -140,7 +189,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Sync volume
   useEffect(()=>{ if(audioRef.current) audioRef.current.volume = volume; },[volume]);
 
-  const value: PlayerState = { current, queue, playing, progress, duration, volume, buffered, play, playQueue, toggle, pause, resume, next, prev, seek, setVolume, clear };
+  const toggleLoop = useCallback(()=> setLoop(l=> !l),[]);
+  const value: PlayerState = { current, queue, playing, progress, duration, volume, buffered, coverUrl, loop, play, playQueue, addToQueue, toggle, pause, resume, next, prev, seek, setVolume, clear, toggleLoop };
   return <PlayerContext.Provider value={value}>{children}</PlayerContext.Provider>;
 };
 

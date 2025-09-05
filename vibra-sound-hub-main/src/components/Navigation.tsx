@@ -1,26 +1,46 @@
+import React, { useState, useMemo, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { ListMusic, Radio, X } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { ListMusic, Radio, X, ShieldCheck } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const Navigation = () => {
   const { userId } = useAuth();
+  const [isAdmin, setIsAdmin] = useState(false);
+  // Checa se usuário é admin para exibir atalho
+  useEffect(()=>{
+    let canceled=false;
+    (async()=>{
+      if(!userId){ setIsAdmin(false); return; }
+      try {
+  const { data, error } = await supabase.from('profiles').select('role').eq('id', userId).maybeSingle();
+  const role = (data as { role?: string } | null)?.role;
+  if(!canceled){ setIsAdmin(!error && role === 'admin'); }
+      } catch { if(!canceled) setIsAdmin(false); }
+    })();
+    return ()=>{ canceled=true; };
+  },[userId]);
   const navigate = useNavigate();
   interface NavIconItem { key:string; label:string; icon: React.ReactNode; description?:string; onClick?: () => void; }
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState<string|null>(null);
-  const navItems: NavIconItem[] = useMemo(()=>[
-    { key:'playlists', label:'Minhas listas de reprodução', icon:<ListMusic className="h-5 w-5"/>, description:'Gerencie e escute suas playlists', onClick:()=>navigate('/playlists') },
-    { key:'podcasts', label:'Podcasts (ao vivo)', icon:(
-        <span className="relative inline-flex">
-          <Radio className="h-5 w-5"/>
-          {/* Indicador LIVE */}
-          <span className="absolute -top-1 -right-1 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-background animate-pulse" />
-        </span>
-      ), description:'Transmissões e episódios em tempo real' },
-  ],[navigate]);
+  const navItems: NavIconItem[] = useMemo(()=>{
+    const base: NavIconItem[] = [
+      { key:'playlists', label:'Minhas listas de reprodução', icon:<ListMusic className="h-5 w-5"/>, description:'Gerencie e escute suas playlists', onClick:()=>navigate('/playlists') },
+      { key:'podcasts', label:'Podcasts (ao vivo)', icon:(
+          <span className="relative inline-flex">
+            <Radio className="h-5 w-5"/>
+            <span className="absolute -top-1 -right-1 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-background animate-pulse" />
+          </span>
+        ), description:'Transmissões e episódios em tempo real' },
+    ];
+    if(isAdmin){
+      base.push({ key:'admin-verif', label:'Verificações', icon:<ShieldCheck className="h-5 w-5"/>, description:'Gerencie solicitações de selo', onClick:()=>navigate('/admin-verifications') });
+    }
+    return base;
+  },[navigate, isAdmin]);
 
   return (
   <nav className="supports-[backdrop-filter]:bg-background/25 bg-background/60 backdrop-blur-md border-b border-white/10 shadow-[0_2px_14px_-6px_rgba(0,0,0,0.2)] relative">

@@ -4,10 +4,6 @@ export const BRAND = {
   logo: {
     full: "/logo-nomix.svg", // Substitua pelo seu arquivo ex: /meu-logo.svg
     icon: "/logo-nomix.svg",
-    alternatives: [
-      "/logo-nomix-alt1.svg",
-      "/logo-nomix-alt2.svg",
-    ]
   },
   fallbackInitial: "N",
 };

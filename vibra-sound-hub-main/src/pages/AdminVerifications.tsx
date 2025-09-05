@@ -22,6 +22,8 @@ const AdminVerifications: React.FC = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [noAdminExists, setNoAdminExists] = useState<boolean|null>(null);
   const [promoting, setPromoting] = useState(false);
+  const [schemaIssue, setSchemaIssue] = useState<string|null>(null); // guarda erro de schema (ex: coluna role ausente)
+  const [lastRoleValue, setLastRoleValue] = useState<string|undefined>(undefined);
 
   const rpc = supabase as unknown as { rpc: (fn:string, params?:Record<string,unknown>)=>Promise<{ data:any; error:any }> };
 
@@ -44,11 +46,29 @@ const AdminVerifications: React.FC = () => {
     let canceled = false;
     (async()=>{
       try {
-  const { data, error } = await supabase.from('profiles').select('role').eq('id', userId).maybeSingle();
-  const role = (data as { role?: string } | null)?.role;
-  if(!canceled){ setIsAdmin(!error && role === 'admin'); }
-      } catch { if(!canceled){ setIsAdmin(false); } }
-      finally { if(!canceled) setCheckingRole(false); }
+        const sel = await supabase.from('profiles').select('role').eq('id', userId).maybeSingle();
+        const role = (sel.data as { role?: string } | null)?.role;
+        if(import.meta.env.DEV){ console.debug('[AdminVerifications] fetched role', { userId, role, error: sel.error }); }
+        if(!canceled){
+          setLastRoleValue(role);
+          if(sel.error){
+            const msg = sel.error.message || '';
+            if(/column\s+"?role"?\s+does not exist/i.test(msg)){
+              setSchemaIssue('Coluna role ausente em public.profiles');
+              // fallback: tratar como nenhum admin existente para exibir botão de bootstrap
+              setIsAdmin(false);
+              setNoAdminExists(true);
+            } else {
+              setSchemaIssue(msg);
+            }
+          } else {
+            setIsAdmin(role === 'admin');
+          }
+        }
+      } catch(e:any){
+        if(import.meta.env.DEV){ console.debug('[AdminVerifications] role fetch exception', e); }
+        if(!canceled){ setIsAdmin(false); setSchemaIssue(e?.message||'erro desconhecido'); }
+      } finally { if(!canceled) setCheckingRole(false); }
     })();
     return ()=>{ canceled=true; };
   },[userId]);
@@ -127,6 +147,15 @@ const AdminVerifications: React.FC = () => {
         <div className="py-24 text-center">
           <p className="text-lg font-semibold mb-2">Acesso restrito</p>
           <p className="text-sm text-muted-foreground">Esta área é exclusiva para administradores.</p>
+          {schemaIssue && (
+            <div className="mt-6 mx-auto max-w-md text-left text-xs bg-amber-500/10 border border-amber-500/30 rounded p-4 space-y-2">
+              <p className="font-medium text-amber-600 dark:text-amber-400">Aviso de Schema</p>
+              <p className="text-amber-700 dark:text-amber-300">{schemaIssue}</p>
+              <p className="text-amber-700 dark:text-amber-300">Execute no painel SQL (Supabase) para corrigir e depois faça logout/login:</p>
+              <pre className="whitespace-pre-wrap text-[10px] leading-relaxed bg-background/60 p-2 rounded border overflow-auto">{`DO $$\nBEGIN\n  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='role') THEN\n    ALTER TABLE public.profiles ADD COLUMN role text DEFAULT 'user';\n    UPDATE public.profiles SET role='user' WHERE role IS NULL;\n  END IF;\nEND$$;\n\nUPDATE public.profiles SET role='admin' WHERE id='${userId}';`}</pre>
+              <p className="text-amber-700 dark:text-amber-300">Role atual detectada: <span className="font-mono">{lastRoleValue ?? '—'}</span></p>
+            </div>
+          )}
           {noAdminExists && (
             <div className="mt-8 flex flex-col items-center gap-3">
               <p className="text-xs text-muted-foreground max-w-xs">Nenhum administrador encontrado. Você pode tornar-se o primeiro admin.</p>
@@ -141,7 +170,7 @@ const AdminVerifications: React.FC = () => {
   <>
   <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">Aprovação de Verificação <Badge variant="secondary" className="text-xs">Admin</Badge></h1>
+          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">Aprovação de Verificação <span className="inline-flex items-center rounded-full bg-secondary text-secondary-foreground px-2.5 py-0.5 text-xs font-semibold">Admin</span></h1>
           <p className="text-sm text-muted-foreground">Gerencie solicitações de selo verificado.</p>
         </div>
         <div className="flex items-center gap-3">

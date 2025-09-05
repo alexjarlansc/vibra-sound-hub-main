@@ -1,4 +1,4 @@
-import { Play, Heart, Download } from "lucide-react";
+import { Play, Heart, Download, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -13,6 +13,7 @@ interface MusicCardProps {
   onPlay?: () => void;
   onLike?: () => void;
   onDownload?: () => void;
+  onAddToPlaylist?: () => void;
   liked?: boolean;
   likeCount?: number;
   downloadsCount?: number;
@@ -20,7 +21,7 @@ interface MusicCardProps {
   disableActions?: boolean;
 }
 
-const MusicCard = ({ title, artist, image, colorVariant, size = "medium", onClick, onPlay, onLike, onDownload, liked, likeCount, downloadsCount, playsCount, disableActions }: MusicCardProps) => {
+const MusicCard = ({ title, artist, image, colorVariant, size = "medium", onClick, onPlay, onLike, onDownload, onAddToPlaylist, liked, likeCount, downloadsCount, playsCount, disableActions }: MusicCardProps) => {
   const sizeClasses = {
     small: "w-40 h-40",
     medium: "w-48 h-48", 
@@ -79,12 +80,22 @@ const MusicCard = ({ title, artist, image, colorVariant, size = "medium", onClic
                 size="sm"
                 variant="ghost"
                 disabled={disableActions}
+                onClick={(e)=>{ e.stopPropagation(); onAddToPlaylist?.(); }}
+                className="text-white hover:bg-white/20 rounded-full w-10 h-10 p-0"
+                aria-label="Adicionar à playlist"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={disableActions}
                 onClick={(e)=>{ e.stopPropagation(); onLike?.(); }}
-                className={`text-white rounded-full w-10 h-10 p-0 ${liked ? 'bg-white/25 hover:bg-white/30' : 'hover:bg-white/20'}`}
+                className={`rounded-full w-10 h-10 p-0 transition ${liked ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-inner' : 'text-white hover:bg-white/20'}`}
                 aria-label="Curtir"
               >
                 <div className="flex flex-col items-center justify-center leading-none">
-                  <Heart className={`h-4 w-4 ${liked ? 'fill-current' : ''}`} />
+                  <Heart className={`h-4 w-4 transition-transform ${liked ? 'fill-current scale-110' : ''}`} />
                   {typeof likeCount === 'number' && <span className="text-[10px] mt-0.5 font-medium">{likeCount}</span>}
                 </div>
               </Button>

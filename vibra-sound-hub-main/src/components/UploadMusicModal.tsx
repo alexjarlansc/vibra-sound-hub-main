@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -99,11 +99,24 @@ export const UploadMusicModal: React.FC<UploadMusicModalProps> = ({ open, onOpen
 
       // envia capa se houver
       let coverUrl: string | null = null;
-    if(cover && albumInsert){
+      if(cover && albumInsert){
         const path = `covers/${albumInsert.id}-${Date.now()}-${cover.name}`;
         try {
+          if(import.meta.env.DEV) console.debug('[UploadMusicModal] iniciando upload da capa', { path });
           coverUrl = await uploadFileWithCancel(BUCKET, path, cover, abortRef.current.signal, accessToken);
-          await (supabase.from('albums') as any).update({ cover_url: coverUrl }).eq('id', albumInsert.id);
+          // Atualiza a coluna cover_url e checa erro explicitamente
+          const { error: coverUpdateErr } = await (supabase.from('albums') as any)
+            .update({ cover_url: coverUrl })
+            .eq('id', albumInsert.id);
+          if(coverUpdateErr){
+            if(import.meta.env.DEV) console.warn('[UploadMusicModal] falha update cover_url', coverUpdateErr);
+            const raw = JSON.stringify(coverUpdateErr);
+            if(/row level security/i.test(raw) || coverUpdateErr.code === '42501'){
+              throw new Error('Permissão negada ao atualizar capa (policy UPDATE ausente em public.albums). Crie uma policy UPDATE onde auth.uid() = user_id.');
+            }
+            throw new Error('Erro ao atualizar cover_url: '+ coverUpdateErr.message);
+          }
+          setProgress(p => p < 10 ? 10 : p); // garante avanço mínimo
         } catch(err){
           if(isAbortError(err)) throw { name: 'AbortError', albumId: albumInsert.id } as AbortLikeWithAlbum;
           const msg = err instanceof Error ? err.message : 'erro desconhecido';
@@ -123,6 +136,9 @@ create policy "music-select" on storage.objects for select using (
 );
 
 -- Depois, marque o bucket como Public (Storage > bucket > toggle Public).
+
+-- Policy UPDATE em public.albums (capa)
+create policy "albums-owner-update" on public.albums for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 `;
             throw new Error(hint);
           }

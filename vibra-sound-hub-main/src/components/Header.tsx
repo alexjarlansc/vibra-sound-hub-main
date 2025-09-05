@@ -1,11 +1,11 @@
-import { Search, Upload, LogIn, User, Bell, Menu, ChevronRight, Heart, Settings, LogOut, FileMusic, PlusSquare, User2, ListMusic } from "lucide-react";
+import { Search, Upload, LogIn, User, Bell, Menu, ChevronRight, Heart, Settings, LogOut, FileMusic, PlusSquare, User2, ListMusic, ShieldCheck } from "lucide-react";
 import GlobalSearchModal from '@/components/GlobalSearchModal';
 import { BRAND } from "@/config/branding";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import UploadMusicModal from "@/components/UploadMusicModal";
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import SettingsModal from '@/components/SettingsModal';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useNavigate } from 'react-router-dom';
@@ -20,6 +20,18 @@ const Header = () => {
   const [openUpload, setOpenUpload] = useState(false);
   const [openUserMenu, setOpenUserMenu] = useState(false);
   const navigate = useNavigate();
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(()=>{
+    let canceled=false;
+    (async()=>{
+      if(!userId){ setIsAdmin(false); return; }
+      try {
+        const { data, error } = await (await import('@/integrations/supabase/client')).supabase.from('profiles').select('role').eq('id', userId).maybeSingle();
+        if(!canceled){ setIsAdmin(!error && (data as any)?.role === 'admin'); }
+      } catch { if(!canceled) setIsAdmin(false); }
+    })();
+    return ()=>{ canceled=true; };
+  },[userId]);
   const [openSearch, setOpenSearch] = useState(false);
   const [openSettings, setOpenSettings] = useState(false);
 
@@ -220,6 +232,12 @@ const Header = () => {
             </ul>
           </nav>
           <div className="border-t p-4">
+            {isAdmin && (
+              <Button variant="ghost" size="sm" className="w-full justify-start gap-3 mb-2" onClick={()=>{ navigate('/admin-verifications'); setOpenUserMenu(false); }}>
+                <ShieldCheck className="w-4 h-4" />
+                <span>Verificações</span>
+              </Button>
+            )}
             <Button variant="ghost" size="sm" className="w-full justify-start gap-3" onClick={()=>{ signOut(); setOpenUserMenu(false); }}>
               <LogOut className="w-4 h-4" />
               <span>Sair</span>

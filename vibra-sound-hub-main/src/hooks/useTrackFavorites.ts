@@ -58,6 +58,11 @@ export const useTrackFavorites = () => {
 
   // Derived enriched data
   const data = useMemo(()=> likes.map(l=> ({ ...l, track: tracks[l.track_id] })), [likes, tracks]);
+  const counts = useMemo(()=>{
+    const map: Record<string, number> = {};
+    likes.forEach(l=> { map[l.track_id] = (map[l.track_id]||0)+1; });
+    return map;
+  },[likes]);
   const likeSet = useMemo(()=> new Set(likes.map(l=> l.track_id)), [likes]);
   const isLiked = useCallback((trackId?:string)=> !!trackId && likeSet.has(trackId), [likeSet]);
 
@@ -73,22 +78,13 @@ export const useTrackFavorites = () => {
       : [{ id:`optimistic-${trackId}`, created_at:new Date().toISOString(), track_id: trackId, user_id: userId }, ...prev];
     setLikes(optimistic);
     try {
-      // Tentar função RPC toggle genérica se existir
-      const rpcClient = supabase as unknown as { rpc: (fn:string, params: Record<string,unknown>)=>Promise<{ data:any; error:any }> };
-      let usedRpc = false;
-      try {
-        const { error: rpcErr } = await rpcClient.rpc('toggle_track_like', { p_track: trackId });
-        if(!rpcErr) usedRpc = true;
-      } catch { /* ignora se não existir */ }
-      if(!usedRpc){
-        const tbl = supabase.from('track_likes') as any;
-        if(existing){
-          const del = await tbl.delete().eq('id', existing.id);
-          if(del.error) throw del.error;
-        } else {
-          const ins = await tbl.insert({ track_id: trackId, user_id: userId });
-          if(ins.error) throw ins.error;
-        }
+      const tbl = supabase.from('track_likes') as any;
+      if(existing && !existing.id.startsWith('optimistic-')){
+        const del = await tbl.delete().eq('id', existing.id).eq('user_id', userId).eq('track_id', trackId);
+        if(del.error) throw del.error;
+      } else if(!existing) {
+        const ins = await tbl.insert({ track_id: trackId, user_id: userId });
+        if(ins.error) throw ins.error;
       }
       // Re-sync
       await load();
@@ -102,5 +98,5 @@ export const useTrackFavorites = () => {
     }
   },[likes, userId, load]);
 
-  return { data, loading, error, reload: load, toggleTrackLike, isLiked };
+  return { data, loading, error, reload: load, toggleTrackLike, isLiked, counts };
 };

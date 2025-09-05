@@ -35,7 +35,9 @@ const App = () => (
             <Route path="/perfil" element={<Suspense fallback={<div className='p-10 text-center text-sm text-muted-foreground'>Carregando...</div>}><Profile /></Suspense>} />
             <Route path="/favoritos" element={<Suspense fallback={<div className='p-10 text-center text-sm text-muted-foreground'>Carregando...</div>}><Favorites /></Suspense>} />
             <Route path="/playlists" element={<Suspense fallback={<div className='p-10 text-center text-sm text-muted-foreground'>Carregando...</div>}><Playlists /></Suspense>} />
+            {/* Rotas de administração de verificações */}
             <Route path="/admin/verification" element={<Suspense fallback={<div className='p-10 text-center text-sm text-muted-foreground'>Carregando...</div>}><AdminVerifications /></Suspense>} />
+            <Route path="/admin-verifications" element={<Suspense fallback={<div className='p-10 text-center text-sm text-muted-foreground'>Carregando...</div>}><AdminVerifications /></Suspense>} />
             <Route path="/become-admin" element={<Suspense fallback={<div className='p-10 text-center text-sm text-muted-foreground'>Carregando...</div>}><BecomeAdmin /></Suspense>} />
           </Route>
           <Route path="*" element={<Suspense fallback={<div className='p-10 text-center text-sm text-muted-foreground'>Carregando...</div>}><NotFound /></Suspense>} />

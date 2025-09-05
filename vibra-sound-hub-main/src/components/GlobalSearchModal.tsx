@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { usePlayer } from '@/context/PlayerContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -16,6 +17,8 @@ interface SearchResult {
   id: string;
   title: string;
   subtitle?: string;
+  file_url?: string; // para tracks
+  album_id?: string | null;
 }
 
 // debounce helper
@@ -30,6 +33,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ open, onOp
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<SearchResult[]>([]);
   const debounced = useDebounce(query, 280);
+  const { play, addToQueue } = usePlayer();
 
   // Catálogo de gêneros (visual apenas / seta consulta ao clicar)
   const genres: { name: string; emoji: string; from: string; to: string; }[] = [
@@ -66,17 +70,29 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ open, onOp
       // Simple ilike queries with limits. Each may fail if table absent.
       const tasks: Promise<void>[] = [];
       const collected: SearchResult[] = [];
-      // tracks
+      // tracks por nome ou por gênero do álbum
       tasks.push((async()=>{
-        const { data, error } = await supabase.from('tracks').select('id, filename, album_id').ilike('filename', `%${q}%`).limit(5);
-        if(!error && data){ data.forEach((t:any)=> collected.push({ type:'track', id:t.id, title:t.filename, subtitle:'Faixa' })); }
+        // Primeiro tenta por filename
+  const { data: t1, error: e1 } = await supabase.from('tracks').select('id, filename, album_id, file_url').ilike('filename', `%${q}%`).limit(5);
+  if(!e1 && t1){ t1.forEach((t:any)=> collected.push({ type:'track', id:t.id, title:t.filename, subtitle:'Faixa', file_url: t.file_url, album_id: t.album_id })); }
+        // Se termo parece gênero (palavra sem espaços grande) buscar álbuns desse gênero e listar algumas faixas deles
+        if(q.length >=3){
+          const { data: alb, error: eAlb } = await supabase.from('albums').select('id, name, genre').ilike('genre', `%${q}%`).limit(3) as any;
+          if(!eAlb && alb && alb.length){
+            const albumIds = alb.map(a=> a.id);
+            const { data: tByGenre } = await supabase.from('tracks').select('id, filename, album_id, file_url').in('album_id', albumIds).limit(5);
+            if(tByGenre){ tByGenre.forEach((t:any)=> collected.push({ type:'track', id:t.id, title:t.filename, subtitle:'Faixa por gênero', file_url: t.file_url, album_id: t.album_id })); }
+            // também empurra pseudo resultados de álbum já que a query principal de álbum busca por title e não por genre
+            alb.forEach((a:any)=> collected.push({ type:'album', id:a.id, title:a.name, subtitle:a.genre || 'Álbum' }));
+          }
+        }
       })());
       // playlists
       tasks.push((async()=>{
         const { data, error } = await supabase.from('playlists').select('id, name').ilike('name', `%${q}%`).limit(5);
         if(!error && data){ data.forEach((p:any)=> collected.push({ type:'playlist', id:p.id, title:p.name, subtitle:'Playlist' })); }
       })());
-      // albums
+  // albums (por nome) - manter existente
       tasks.push((async()=>{
         const { data, error } = await supabase.from('albums').select('id, title').ilike('title', `%${q}%`).limit(5);
         if(!error && data){ data.forEach((a:any)=> collected.push({ type:'album', id:a.id, title:a.title, subtitle:'Álbum' })); }
@@ -125,7 +141,14 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ open, onOp
               {results.map(r=> (
                 <li key={r.type+':'+r.id}>
                   <button
-                    onClick={()=>{ handleOpenChange(false); switch(r.type){ case 'track': onNavigate(`/track/${r.id}`); break; case 'album': onNavigate(`/album/${r.id}`); break; case 'playlist': onNavigate(`/playlists`); break; case 'profile': onNavigate(`/perfil/${r.id}`); break; }} }
+                    onClick={()=>{ 
+                      handleOpenChange(false);
+                      if(r.type === 'track' && r.file_url){
+                        play({ id: r.id, title: r.title, url: r.file_url, albumId: r.album_id || null });
+                      } else if(r.type === 'album') { onNavigate(`/album/${r.id}`); }
+                      else if(r.type === 'playlist') { onNavigate(`/playlists`); }
+                      else if(r.type === 'profile') { onNavigate(`/perfil/${r.id}`); }
+                    }}
                     className="w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted/60 text-left text-sm"
                   >
                     <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary">{iconFor(r.type)}</span>
