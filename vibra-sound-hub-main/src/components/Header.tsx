@@ -215,9 +215,13 @@ const Header = () => {
                     <p className="font-medium truncate">Olá, {profileName ?? displayName}</p>
                     <div className="flex items-center gap-1">
                       {isVerified && (
-                        <img src="/Verified-alt-purple.svg" alt="Verificado" className="h-6 w-6" />
+                        <img src="/Verified-alt-purple.svg" alt="Verificado" title="Verificado" aria-label="Verificado" className="h-4 w-4" />
                       )}
-                      {isAdmin && <Crown className="h-4 w-4 text-amber-500" />}
+                      {isAdmin && (
+                        <span title="Administrador" aria-label="Administrador" className="inline-flex">
+                          <Crown className="h-4 w-4 text-amber-500" aria-hidden="true" />
+                        </span>
+                      )}
                     </div>
                   </div>
                 ) : (

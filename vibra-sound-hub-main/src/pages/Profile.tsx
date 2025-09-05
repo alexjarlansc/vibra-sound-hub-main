@@ -2,6 +2,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useMemo, useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { useFollow } from '@/hooks/useFollow';
 import ProfileAvatar from '@/components/ProfileAvatar';
 import PageShell from '@/components/PageShell';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,6 +15,8 @@ interface Stats { plays: number; uploads: number; downloads: number; followers: 
 
 const Profile = () => {
   const { user, userEmail } = useAuth();
+  const [searchParams] = useSearchParams();
+  const viewedProfileId = searchParams.get('id') ?? user?.id;
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(user?.user_metadata?.avatar_url);
   const [profileInfo, setProfileInfo] = useState<{ role?: string; is_verified?: boolean; username?: string; email?: string }|null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
@@ -43,25 +47,28 @@ const Profile = () => {
 
   const stats: Stats = { plays: 0, uploads: 0, downloads: 0, followers: 0, following: 0 };
 
+  // Follow hook: usado para visualização de perfis públicos
+  const { isFollowing, followers, following, loading: followLoading, follow, unfollow } = useFollow(viewedProfileId ?? '', user?.id ?? null);
+
   // Carrega role/is_verified
   useEffect(()=>{
-    if(!user?.id) return;
+    if(!viewedProfileId) return;
     let canceled = false;
     (async()=>{
       try {
         setProfileLoading(true);
-        const { data, error } = await supabase.from('profiles').select('role,is_verified,username,email,avatar_url').eq('id', user.id).maybeSingle();
+        const { data, error } = await supabase.from('profiles').select('role,is_verified,username,email,avatar_url').eq('id', viewedProfileId).maybeSingle();
         if(!canceled){
           if(!error) {
             setProfileInfo(data as any);
             setAvatarUrl(((data as any)?.avatar_url) ?? user?.user_metadata?.avatar_url);
-            try { window.dispatchEvent(new CustomEvent('profile:updated', { detail: { userId: user.id } })); } catch(e){}
+            try { window.dispatchEvent(new CustomEvent('profile:updated', { detail: { userId: viewedProfileId } })); } catch(e){}
           }
         }
       } finally { if(!canceled) setProfileLoading(false); }
     })();
     return ()=>{ canceled = true; };
-  },[user?.id]);
+  },[viewedProfileId, user?.user_metadata?.avatar_url]);
 
   return (
     <div className="min-h-screen">
@@ -75,10 +82,12 @@ const Profile = () => {
                   <span>{displayName}</span>
                   <div className="flex items-center gap-2">
                     {profileInfo?.is_verified && (
-                      <img src="/Verified-alt-purple.svg" alt="Verificado" className="h-6 w-6 object-contain" />
+                      <img src="/Verified-alt-purple.svg" alt="Verificado" title="Verificado" aria-label="Verificado" className="h-4 w-4 object-contain" />
                     )}
                     {profileInfo?.role === 'admin' && (
-                      <Crown className="h-4 w-4 text-amber-500" />
+                      <span title="Administrador" aria-label="Administrador" className="inline-flex">
+                        <Crown className="h-4 w-4 text-amber-500" aria-hidden="true" />
+                      </span>
                     )}
                   </div>
                   {profileLoading && !profileInfo && (
@@ -86,6 +95,19 @@ const Profile = () => {
                   )}
                 </h1>
                 <p className="text-sm text-muted-foreground mt-1">Divulgador</p>
+                {viewedProfileId && user?.id && viewedProfileId !== user.id && (
+                  <div className="mt-3">
+                    <button
+                      className={`inline-flex items-center px-3 py-1 rounded-md text-sm font-medium ${isFollowing ? 'bg-foreground text-background' : 'bg-primary text-white'}`}
+                      onClick={async()=>{ if(isFollowing) await unfollow(); else await follow(); }}
+                      disabled={followLoading}
+                      title={isFollowing ? 'Deixar de seguir' : 'Seguir'}
+                      aria-pressed={isFollowing}
+                    >
+                      {followLoading ? 'Carregando...' : (isFollowing ? 'Seguindo' : 'Seguir')}
+                    </button>
+                  </div>
+                )}
               </div>
               {/* Botão de verificação removido conforme solicitação */}
             </div>
@@ -135,11 +157,11 @@ const Profile = () => {
                   <p className="text-muted-foreground">Downloads</p>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{stats.followers}</p>
+                  <p className="text-2xl font-bold">{typeof followers === 'number' ? followers : stats.followers}</p>
                   <p className="text-muted-foreground">Seguidores</p>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{stats.following}</p>
+                  <p className="text-2xl font-bold">{typeof following === 'number' ? following : stats.following}</p>
                   <p className="text-muted-foreground">Seguindo</p>
                 </div>
               </div>
