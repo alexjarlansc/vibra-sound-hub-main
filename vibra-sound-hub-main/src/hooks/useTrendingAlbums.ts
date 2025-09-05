@@ -16,13 +16,35 @@ export function useTrendingAlbums(options: Options = {}) {
 
   const load = useCallback(async ()=>{
     setLoading(true); setError(null);
-    const { data: rows, error } = await supabase
+    // 1) tentativa: view agregada
+    const { data: rows, error: viewError } = await supabase
       .from('album_trending_view')
       .select('*')
       .order('score', { ascending: false })
       .limit(limit);
-    if(error){ setError(error.message); setLoading(false); return; }
-    setData(rows || []);
+    if(!viewError && rows && rows.length){
+      setData(rows as TrendingAlbum[]); setLoading(false); return;
+    }
+    // 2) fallback simples: pegar últimos álbuns criados
+    const { data: albums, error: albumsErr } = await supabase
+      .from('albums')
+      .select('id, name, genre, cover_url, user_id, created_at')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    if(albumsErr){ setError(viewError?.message || albumsErr.message); setLoading(false); return; }
+  const coerced: TrendingAlbum[] = ((albums as any) || []).map((a:any, i:number)=>({
+      id: a.id,
+      name: a.name,
+      genre: a.genre,
+      cover_url: a.cover_url,
+      user_id: a.user_id,
+      created_at: a.created_at,
+      plays_count: 0,
+      downloads_count: 0,
+      likes_count: 0,
+      score: 0 - i
+  }));
+    setData(coerced);
     setLoading(false);
   },[limit]);
 

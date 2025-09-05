@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface MusicCardProps {
+  // React key (não chega via props em runtime, mas adicionamos para satisfazer TS nas declarações de uso)
+  key?: string | number;
   id?: string;
   title: string;
   artist: string;
@@ -35,8 +37,8 @@ const MusicCard = ({ title, artist, image, colorVariant, size = "medium", onClic
   };
 
   return (
-  <Card onClick={onClick} className="group cursor-pointer transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:shadow-primary/10 overflow-hidden bg-card/80 backdrop-blur-sm border-border/50">
-      <CardContent className="p-0">
+  <Card onClick={onClick} className="group cursor-pointer transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:shadow-primary/10 overflow-hidden bg-card/80 backdrop-blur-sm border-border/50 relative hover:z-20 isolate">
+      <CardContent className="p-0 relative">
         <div className={`${sizeClasses[size]} relative overflow-hidden`}>
           {/* Badges topo */}
           <div className="absolute top-2 left-2 z-20 flex flex-col gap-1 text-[10px] font-medium">
@@ -65,7 +67,7 @@ const MusicCard = ({ title, artist, image, colorVariant, size = "medium", onClic
           )}
           
           {/* Hover Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center z-20">
             <div className="flex space-x-3 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
               <Button
                 size="sm"
@@ -114,7 +116,7 @@ const MusicCard = ({ title, artist, image, colorVariant, size = "medium", onClic
         </div>
         
         {image && (
-          <div className="p-4 bg-card/90 backdrop-blur-sm">
+          <div className="p-4 bg-card/90 backdrop-blur-sm relative z-10">
             <h3 className={`font-semibold text-card-foreground ${textSizeClasses[size]} mb-1 truncate`}>
               {title}
             </h3>

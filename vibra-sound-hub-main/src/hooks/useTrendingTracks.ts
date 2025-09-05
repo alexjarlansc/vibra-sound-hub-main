@@ -41,9 +41,11 @@ export function useTrendingTracks(options: Options = {}) {
     if(tracksError){ setError(viewError?.message || tracksError.message); setLoading(false); return; }
 
     // sem tabelas de plays/likes/downloads definidas ainda, score = 0
-    const built: TrendingTrackRow[] = (tracks||[]).map((t:TrackRow,i)=>({
+    const built: TrendingTrackRow[] = (tracks||[]).map((t:TrackRow,i)=>{
+      const baseName = t.filename.replace(/\.[a-zA-Z0-9]+$/, '');
+      return {
       id: t.id,
-      name: t.filename,
+      name: baseName,
       album_id: null,
       user_id: null,
       created_at: t.created_at,
@@ -51,7 +53,7 @@ export function useTrendingTracks(options: Options = {}) {
       downloads_count: 0,
       likes_count: 0,
       score: 0 - i // mantém ordem estável
-    })).slice(0,limit);
+    }; }).slice(0,limit);
 
     setData(built);
     setLoading(false);

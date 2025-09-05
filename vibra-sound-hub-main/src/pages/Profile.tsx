@@ -14,7 +14,7 @@ interface Stats { plays: number; uploads: number; downloads: number; followers: 
 const Profile = () => {
   const { user, userEmail } = useAuth();
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(user?.user_metadata?.avatar_url);
-  const [profileInfo, setProfileInfo] = useState<{ role?: string; is_verified?: boolean }|null>(null);
+  const [profileInfo, setProfileInfo] = useState<{ role?: string; is_verified?: boolean; username?: string; email?: string }|null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
   // sincroniza quando metadata mudar (ex: após update em outra aba/componente)
   if(user?.user_metadata?.avatar_url !== avatarUrl){
@@ -24,12 +24,22 @@ const Profile = () => {
     }
   }
   const displayName = useMemo(()=>{
-    const meta = user?.user_metadata || {}; // supabase padrão
-    const raw = meta.full_name || meta.name || meta.user_name || userEmail || 'Usuário';
+    let raw = '';
+    // 1) prefer profiles.username
+    if(profileInfo?.username && typeof profileInfo.username === 'string' && profileInfo.username.trim()) raw = profileInfo.username.trim();
+    // 2) email from profile row
+    if(!raw && profileInfo?.email) raw = String(profileInfo.email).split('@')[0];
+    // 3) auth metadata
+    if(!raw && user?.user_metadata) raw = user.user_metadata.full_name || user.user_metadata.name || user.user_metadata.user_name || '';
+    // 4) auth email
+    if(!raw && user?.email) raw = user.email.split('@')[0];
+    // 5) fallback hook-provided email
+    if(!raw && userEmail) raw = String(userEmail).split('@')[0];
+    if(!raw) raw = 'Usuário';
     const parts = raw.split(/\s+/).filter(Boolean);
-    if(parts.length>1){ return parts.slice(0,3).map(p=> p.charAt(0).toUpperCase()+p.slice(1)).join(' ');} 
+    if(parts.length>1) return parts.slice(0,3).map(p=> p.charAt(0).toUpperCase()+p.slice(1)).join(' ');
     return raw.charAt(0).toUpperCase()+raw.slice(1);
-  },[user, userEmail]);
+  },[profileInfo?.username, profileInfo?.email, user?.user_metadata, user?.email, userEmail]);
 
   const stats: Stats = { plays: 0, uploads: 0, downloads: 0, followers: 0, following: 0 };
 
@@ -40,9 +50,13 @@ const Profile = () => {
     (async()=>{
       try {
         setProfileLoading(true);
-        const { data, error } = await supabase.from('profiles').select('role,is_verified').eq('id', user.id).maybeSingle();
+        const { data, error } = await supabase.from('profiles').select('role,is_verified,username,email,avatar_url').eq('id', user.id).maybeSingle();
         if(!canceled){
-          if(!error) setProfileInfo(data as any);
+          if(!error) {
+            setProfileInfo(data as any);
+            setAvatarUrl(((data as any)?.avatar_url) ?? user?.user_metadata?.avatar_url);
+            try { window.dispatchEvent(new CustomEvent('profile:updated', { detail: { userId: user.id } })); } catch(e){}
+          }
         }
       } finally { if(!canceled) setProfileLoading(false); }
     })();
@@ -53,22 +67,20 @@ const Profile = () => {
     <div className="min-h-screen">
       <PageShell>
         <div className="flex flex-col sm:flex-row items-start sm:items-end gap-6">
-          <ProfileAvatar url={avatarUrl} fallback={displayName.charAt(0)} onChange={setAvatarUrl} />
+          <ProfileAvatar url={avatarUrl} fallback={displayName} onChange={setAvatarUrl} />
           <div className="flex-1 w-full">
             <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
               <div>
                 <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3 flex-wrap">
                   <span>{displayName}</span>
-                  {profileInfo?.role === 'admin' && (
-                    <Badge variant="secondary" className="flex items-center gap-1 text-[11px] py-1">
-                      <Crown className="h-3.5 w-3.5 text-amber-500" /> Admin
-                    </Badge>
-                  )}
-                  {profileInfo?.is_verified && (
-                    <Badge className="flex items-center gap-1 bg-emerald-600 text-white hover:bg-emerald-600 text-[11px] py-1">
-                      <ShieldCheck className="h-3.5 w-3.5" /> Verificado
-                    </Badge>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {profileInfo?.is_verified && (
+                      <img src="/Verified-alt-purple.svg" alt="Verificado" className="h-6 w-6 object-contain" />
+                    )}
+                    {profileInfo?.role === 'admin' && (
+                      <Crown className="h-4 w-4 text-amber-500" />
+                    )}
+                  </div>
                   {profileLoading && !profileInfo && (
                     <span className="text-xs text-muted-foreground animate-pulse">Carregando...</span>
                   )}

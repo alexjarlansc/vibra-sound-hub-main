@@ -14,6 +14,7 @@ import { enqueueMetric } from "@/lib/metricsQueue";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { downloadAlbumAsZip } from '@/lib/downloadAlbumZip';
 
 // TODO: integrar com hook useTrendingAlbums (dados reais) quando view e tabelas existirem no banco
 const FeaturedSection = () => {
@@ -29,7 +30,13 @@ const FeaturedSection = () => {
   interface FeaturedItem { id?: string; title:string; artist:string; colorVariant: ColorVariant; }
   // Dados mock removidos: agora listas vazias até integrar fonte real.
   const featuredAlbums: FeaturedItem[] = useMemo(() => ([]), []);
-  const hotAlbums: FeaturedItem[] = [];
+  const hotAlbums = useMemo(()=> (trendingData||[]).slice(0,6).map((a,i)=> ({
+    id: a.id,
+    title: a.name?.replace(/\.[a-zA-Z0-9]+$/, '') || 'Álbum',
+    artist: 'Artista',
+    cover: a.cover_url || undefined,
+    colorVariant: ((i%6)+1) as ColorVariant
+  })), [trendingData]);
 
   const tendencias100: FeaturedItem[] = useMemo(()=>[],[]);
 
@@ -60,8 +67,19 @@ const FeaturedSection = () => {
 
   const handleDownload = useCallback(async (id?:string)=>{
     if(!id) return;
-    enqueueMetric({ type: trackIdSet.has(id) ? 'track_download' : 'album_download', id, ts: Date.now() });
-    toast({ title: 'Download registrado (fila)' });
+    if(trackIdSet.has(id)){
+      enqueueMetric({ type: 'track_download', id, ts: Date.now() });
+      toast({ title: 'Download de faixa registrado.' });
+      reload();
+      return;
+    }
+    toast({ title: 'Preparando ZIP do álbum...' });
+    try {
+      await downloadAlbumAsZip(id, { onProgress:(p)=>{ if(p===100) toast({ title:'ZIP pronto, iniciando download.' }); } });
+    } catch(e:any){
+      toast({ title: 'Falha ao gerar ZIP', description: e.message||String(e), variant:'destructive' });
+      return;
+    }
     reload();
   },[reload, toast, trackIdSet]);
 
@@ -107,7 +125,8 @@ const FeaturedSection = () => {
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
             {displayedMusicItems.map((item, index) => {
-                const title = item.name || item.title || '—';
+                const rawTitle = item.name || item.title || '—';
+                const title = rawTitle.replace(/\.[a-zA-Z0-9]+$/, '');
                 const colorVariant = ((index%6)+1) as ColorVariant;
                 return (
                   <MusicCard
@@ -147,11 +166,13 @@ const FeaturedSection = () => {
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-            {hotAlbums.map((album, index) => (
+      {hotAlbums.map((album, index) => (
               <MusicCard
                 key={index}
+        id={album.id}
                 title={album.title}
                 artist={album.artist}
+        image={album.cover}
                 colorVariant={album.colorVariant}
                 size="medium"
                 onClick={()=> setOpenAlbum({ title: album.title, artist: album.artist })}

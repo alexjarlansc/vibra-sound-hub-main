@@ -1,0 +1,231 @@
+import React from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useMemo, useState, useEffect } from 'react';
+import ProfileAvatar from '@/components/ProfileAvatar';
+import PageShell from '@/components/PageShell';
+import { supabase } from '@/integrations/supabase/client';
+import { ShieldCheck, Crown } from 'lucide-react';
+import { usePlayer } from '@/context/PlayerContext';
+import { downloadAlbumAsZip } from '@/lib/downloadAlbumZip';
+import { toast } from '@/hooks/use-toast';
+import { MusicDetailsModal } from '@/components/MusicDetailsModal';
+import { useFollow } from '@/hooks/useFollow';
+
+interface Stats { plays: number; uploads: number; downloads: number; followers: number; following: number; }
+interface RecentUpload { id: string; name: string; created_at: string; cover_url?: string | null; type: 'album'|'track'; plays?: number; downloads?: number; file_url?: string; sizeBytes?: number; }
+
+const Profile: React.FC = () => {
+  const [modalItem, setModalItem] = useState<{ id: string; type: 'album'|'track' }|null>(null);
+  const { user, userEmail } = useAuth();
+  const [avatarUrl, setAvatarUrl] = useState<string | undefined>(user?.user_metadata?.avatar_url);
+  const profileId = user?.id;
+  const currentUserId = user?.id;
+  const { isFollowing, followers, following, loading: followLoading, follow, unfollow } = useFollow(profileId, currentUserId);
+  const [profileInfo, setProfileInfo] = useState<{ role?: string; is_verified?: boolean; username?: string; email?: string }|null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [displayFallback, setDisplayFallback] = useState<string | null>(null);
+  const [stats, setStats] = useState<Stats>({ plays:0, uploads:0, downloads:0, followers:0, following:0 });
+  const [recentAlbums, setRecentAlbums] = useState<RecentUpload[]>([]);
+  const [recentSingles, setRecentSingles] = useState<RecentUpload[]>([]);
+  const [loadingRecent, setLoadingRecent] = useState(false);
+  const [loadingStats, setLoadingStats] = useState(false);
+  const player = usePlayer();
+
+  useEffect(()=>{
+    if(user?.user_metadata?.avatar_url !== avatarUrl){ setAvatarUrl(user?.user_metadata?.avatar_url); }
+  },[user?.user_metadata?.avatar_url, avatarUrl]);
+
+  const displayName = useMemo(()=>{
+    let raw = '';
+    if (profileInfo?.username && typeof profileInfo.username === 'string' && profileInfo.username.trim()) raw = profileInfo.username.trim();
+  // if DB username missing, allow a fallback (from auth metadata or email) to be used
+  if(!raw && displayFallback) raw = displayFallback;
+    if(!raw && profileInfo?.email) raw = String(profileInfo.email).split('@')[0];
+    if(!raw && user?.user_metadata) raw = user.user_metadata.full_name || user.user_metadata.name || user.user_metadata.user_name || '';
+    if(!raw && user?.email) raw = user.email.split('@')[0];
+    if(!raw && userEmail) raw = String(userEmail).split('@')[0];
+    if(!raw) raw = 'Usuário';
+    const parts = raw.split(/\s+/).filter(Boolean);
+    if(parts.length>1) return parts.slice(0,3).map(p=> p.charAt(0).toUpperCase()+p.slice(1)).join(' ');
+    return raw.charAt(0).toUpperCase()+raw.slice(1);
+  },[profileInfo?.username, profileInfo?.email, user?.user_metadata, user?.email, userEmail]);
+
+  // fetch profile and do one-shot sync if username missing
+  useEffect(()=>{
+    if(!user?.id) return;
+    let canceled = false;
+    (async()=>{
+      try{
+        setProfileLoading(true);
+  const { data, error } = await supabase.from('profiles').select('role,is_verified,username,email').eq('id', user.id).maybeSingle();
+  if(!canceled){
+    if(error){ console.warn('[Profile] error fetching profile:', error.message || error); }
+    setProfileInfo(data as any);
+    try{ console.debug('[DEBUG] profile fetch', { profile: data, authUser: user, error }); }catch(e){}
+    const currentUsername = (data as any)?.username;
+    // compute meta fallback name from auth metadata
+    const meta = (user?.user_metadata || {}) as any;
+    const metaName = meta?.full_name || meta?.fullName || meta?.name || meta?.user_name || null;
+    if(currentUsername == null || String(currentUsername || '').trim() === ''){
+            try{
+              const r = await supabase.auth.getUser();
+              const u = r.data.user;
+              if(u?.id){
+                const metaName = (u.user_metadata as any)?.full_name ? String((u.user_metadata as any).full_name).trim() : null;
+                const fallback = u.email ? String(u.email).split('@')[0] : null;
+                const username = metaName || fallback || null;
+                if(username){
+                  const { error: upserr } = await (supabase.from('profiles') as any).upsert([{ id: u.id, username }], { onConflict: 'id' });
+                  if(!upserr){
+                    const { data: newData } = await supabase.from('profiles').select('role,is_verified,username,email').eq('id', u.id).maybeSingle();
+                    if(!canceled) setProfileInfo(newData as any);
+                    try{ window.dispatchEvent(new CustomEvent('profile:updated', { detail: { userId: u.id } })); }catch(e){}
+                  } else {
+        // eslint-disable-next-line no-console
+        console.warn('[Profile] sync upsert failed:', upserr.message || upserr);
+        // use metaName fallback locally so UI shows a name even if upsert fails (RLS)
+        if(metaName){ setDisplayFallback(String(metaName).trim()); }
+                  }
+                }
+              }
+            }catch(e){ /* don't block render */ }
+      // if DB had no username but we computed metaName earlier, use it as fallback
+      if(!displayFallback && metaName){ setDisplayFallback(String(metaName).trim()); }
+          }
+  }
+      } finally { if(!canceled) setProfileLoading(false); }
+    })();
+
+    const onUpdated = (e: any) => {
+      if(e?.detail?.userId === user.id){
+        (async()=>{
+          try{
+            const { data, error } = await supabase.from('profiles').select('role,is_verified,username,email').eq('id', user.id).maybeSingle();
+            if(!error) setProfileInfo(data as any);
+          }catch(e){}
+        })();
+      }
+    };
+    window.addEventListener('profile:updated', onUpdated as EventListener);
+    return ()=>{ canceled = true; window.removeEventListener('profile:updated', onUpdated as EventListener); };
+  },[user?.id]);
+
+  // recent uploads
+  useEffect(()=>{
+    if(!user?.id) return;
+    let canceled = false;
+    (async()=>{
+      setLoadingRecent(true);
+      try{
+        const { data: tracksData } = await supabase.from('tracks').select('id, filename as name, file_url, created_at').eq('user_id', user.id).is('album_id', null).order('created_at', { ascending:false }).limit(10);
+        const { data: albumsData } = await supabase.from('albums').select('id, name, cover_url, created_at').eq('user_id', user.id).order('created_at', { ascending:false }).limit(10);
+        if(canceled) return;
+        const singles: RecentUpload[] = ((tracksData as any)||[]).map((t:any)=> ({ id: t.id, name: t.name, created_at: t.created_at, type:'track' as const, file_url: t.file_url }));
+        const albums = ((albumsData as any)||[]).map((a:any)=> ({ id: a.id, name: a.name, created_at: a.created_at, cover_url: a.cover_url, type:'album' as const }));
+        setRecentSingles(singles.slice(0,6));
+        setRecentAlbums(albums.slice(0,6));
+      } finally { if(!canceled) setLoadingRecent(false); }
+    })();
+    return ()=>{ canceled = true; };
+  },[user?.id]);
+
+  useEffect(()=>{
+    if(!recentSingles.length) return;
+    let canceled = false;
+    (async()=>{
+      const updated: RecentUpload[] = await Promise.all(recentSingles.map(async s => {
+        if(!s.file_url) return s;
+        try{ const res = await fetch(s.file_url, { method:'HEAD' }); const len = res.headers.get('content-length'); if(len) return { ...s, sizeBytes: parseInt(len,10) }; }catch(e){}
+        return s;
+      }));
+      if(!canceled) setRecentSingles(updated);
+    })();
+    return ()=>{ canceled = true; };
+  },[recentSingles.length]);
+
+  function formatBytes(bytes?: number){ if(!bytes && bytes !== 0) return ''; const thresh = 1024; if(Math.abs(bytes) < thresh) return bytes + ' B'; const units = ['KB','MB','GB','TB']; let u = -1; let v = bytes as number; do { v /= thresh; ++u; } while(Math.abs(v) >= thresh && u < units.length-1); return v.toFixed(v >= 100 ? 0 : v >= 10 ? 1 : 2) + ' ' + units[u]; }
+
+  async function handlePlayAlbum(album: RecentUpload){ try{ const { data: tracks, error } = await supabase.from('tracks').select('id, filename, file_url').eq('album_id', album.id).order('created_at', { ascending:true }); if(error) throw new Error(error.message); if(!tracks || !tracks.length){ toast({ title:'Álbum sem faixas', variant:'destructive' }); return; } player.playQueue(tracks.map((t:any)=> ({ id: t.id, title: t.filename, url: t.file_url, albumId: album.id })), 0); }catch(e:any){ toast({ title:'Erro ao tocar álbum', description: e.message, variant:'destructive' }); } }
+
+  function handlePlayTrack(track: RecentUpload){ if(!track.file_url){ toast({ title:'URL não encontrada' }); return; } player.play({ id: track.id, title: track.name, url: track.file_url, albumId: null }, { replaceQueue:false }); }
+
+  async function handleDownloadAlbum(album: RecentUpload){ try { await downloadAlbumAsZip(album.id, { onProgress:(p)=>{ if(p===100) toast({ title:'Download iniciado (ZIP)' }); } }); } catch(e:any){ toast({ title:'Erro no ZIP', description: e.message, variant:'destructive' }); } }
+
+  async function handleDownloadTrack(track: RecentUpload){ if(!track.file_url){ toast({ title:'URL não encontrada' }); return; } try{ const res = await fetch(track.file_url); if(!res.ok) throw new Error('HTTP '+res.status); const blob = await res.blob(); const a = document.createElement('a'); const url = URL.createObjectURL(blob); a.href = url; a.download = track.name.endsWith('.mp3')? track.name : track.name + '.mp3'; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 3000); }catch(e:any){ toast({ title:'Erro ao baixar', description: e.message, variant:'destructive' }); } }
+
+  useEffect(()=>{
+    if(!user?.id) return;
+    let canceled = false;
+    (async()=>{
+      setLoadingStats(true);
+      try{
+        async function safeCount(table: string){ try{ const { count } = await supabase.from(table as any).select('id', { count:'exact', head:true }).eq('user_id', user.id); return count || 0; }catch{ return 0; } }
+        const [tracksC, albumsC, downloadsC, playsC] = await Promise.all([ safeCount('tracks'), safeCount('albums'), safeCount('album_downloads'), safeCount('track_plays') ]);
+        if(canceled) return; const uploads = tracksC + albumsC; setStats(s=> ({ ...s, uploads, downloads: downloadsC, plays: playsC }));
+      } finally { if(!canceled) setLoadingStats(false); }
+    })();
+    return ()=>{ canceled = true; };
+  },[user?.id]);
+
+  return (
+    <div className="min-h-screen">
+      <PageShell>
+        <div className="flex flex-col sm:flex-row items-start sm:items-end gap-6">
+          <ProfileAvatar url={avatarUrl} fallback={displayName.charAt(0)} onChange={setAvatarUrl} />
+          <div className="flex-1 w-full">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3 flex-wrap">
+                  {profileLoading && !displayName ? (
+                    <span className="text-muted-foreground animate-pulse">Carregando...</span>
+                  ) : (
+                    <>
+                      {displayName}
+                      {profileInfo?.is_verified && displayName && (
+                        <span className="inline-flex items-center ml-2 align-middle" title="Perfil verificado">
+                          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5">
+                            <circle cx="10" cy="10" r="10" fill="#4A0590"/>
+                            <path d="M6 10.5L9 13.5L14 8.5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </span>
+                      )}
+                      {profileInfo?.role === 'admin' && displayName && (
+                        <span className="inline-flex items-center ml-2 align-middle" title="Administrador">
+                          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5">
+                            <circle cx="10" cy="10" r="10" fill="#FFD700"/>
+                            <path d="M10 5L12.09 8.26L15.82 9.27L13 12.14L13.82 15.91L10 13.77L6.18 15.91L7 12.14L4.18 9.27L7.91 8.26L10 5Z" fill="#fff"/>
+                          </svg>
+                        </span>
+                      )}
+                    </>
+                  )}
+                </h1>
+                <p className="text-sm text-muted-foreground mt-1">Divulgador</p>
+              </div>
+              {currentUserId && profileId && currentUserId !== profileId && (
+                <Button size="sm" variant={isFollowing ? 'outline' : 'default'} disabled={followLoading} className="ml-2" onClick={isFollowing ? unfollow : follow}>
+                  {isFollowing ? 'Deixar de seguir' : 'Seguir'}
+                </Button>
+              )}
+            </div>
+            <Tabs defaultValue="cds" className="mt-6">
+              <TabsList className="h-10 bg-background/60 backdrop-blur-sm border rounded-full p-1">
+                <TabsTrigger value="cds" className="px-5 rounded-full">CDs/Singles</TabsTrigger>
+                <TabsTrigger value="playlists" className="px-5 rounded-full">Playlist</TabsTrigger>
+                <TabsTrigger value="videos" className="px-5 rounded-full">Vídeos</TabsTrigger>
+              </TabsList>
+              <TabsContent value="cds" className="mt-6">
+                <div className="text-sm text-muted-foreground">Nenhum CD ou single enviado ainda.</div>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </div>
+      </PageShell>
+      <div className="h-20" />
+    </div>
+  );
+};
+
+export default Profile;

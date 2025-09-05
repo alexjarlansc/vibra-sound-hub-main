@@ -115,9 +115,9 @@ export const ProfileAvatar: React.FC<ProfileAvatarProps> = ({ url, fallback, siz
       onDrop={onDrop}
     >
       {url ? (
-        <img src={url} alt="Avatar" className="object-cover w-full h-full" draggable={false} />
+        <img src={url} alt={fallback ?? 'Avatar'} className="object-cover w-full h-full" draggable={false} />
       ) : (
-        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/40 to-primary/10 text-primary font-bold text-5xl select-none">
+        <div className={cn('w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/40 to-primary/10 text-primary font-bold select-none', fallback && fallback.length > 2 ? 'text-2xl px-3 text-center' : 'text-5xl') }>
           {fallback}
         </div>
       )}

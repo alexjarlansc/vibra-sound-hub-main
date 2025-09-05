@@ -72,21 +72,53 @@ export const UploadMusicModal: React.FC<UploadMusicModalProps> = ({ open, onOpen
     if(!validate()) return;
     try {
       setLoading(true);
-  setProgress(2);
+      setProgress(2);
       setWasAborted(false);
       abortRef.current = new AbortController();
-  // Recupera token de sessão autenticada para políticas RLS de storage
-  const { data: sessionData } = await supabase.auth.getSession();
-  const accessToken = sessionData.session?.access_token;
+      // Recupera token de sessão autenticada para políticas RLS de storage
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
       if(import.meta.env.DEV){ console.debug('[UploadMusicModal] session token present?', !!accessToken, accessToken?.slice(0,16)+'...'); }
       if(!accessToken){
         throw new Error('Sessão não encontrada para upload autenticado. Faça login novamente e tente de novo.');
       }
-  const BUCKET = import.meta.env.VITE_SUPABASE_MUSIC_BUCKET || import.meta.env.VITE_SUPABASE_BUCKET_MUSIC || 'music';
-  // cria album
-  const albumPayload: TablesInsert<'albums'> = { name: albumName, genre: genre || null, cover_url: null, user_id: userId || null };
-  // Workaround de tipagem: codegen atual está inferindo 'never' para inserts; usar cast any
-  const { data: albumInsert, error: albumErr } = await (supabase.from('albums') as any).insert(albumPayload).select().single();
+      const BUCKET = import.meta.env.VITE_SUPABASE_MUSIC_BUCKET || import.meta.env.VITE_SUPABASE_BUCKET_MUSIC || 'music';
+
+      if(files.length === 1){
+        // Upload de faixa única (track avulsa)
+        const f = files[0];
+        const path = `tracks/single/${Date.now()}-${f.name}`;
+        const signal = abortRef.current?.signal;
+        if(!signal){ throw new Error('Abort controller ausente'); }
+        const publicUrl = await uploadFileWithCancel(BUCKET, path, f, signal, accessToken);
+        const trackPayload: TablesInsert<'tracks'> = {
+          album_id: null,
+          user_id: userId || null,
+          filename: f.name,
+          file_url: publicUrl,
+          mime_type: f.type || null,
+          size_bytes: f.size
+        };
+        const { error: trackErr } = await (supabase.from('tracks') as any).insert(trackPayload);
+        if(trackErr){
+          const raw = JSON.stringify(trackErr);
+          if(/row level security/i.test(raw) || trackErr.code === '42501' || trackErr.message?.includes('violates row-level security')){
+            throw new Error('Permissão negada ao inserir faixa. Crie policy INSERT em public.tracks (auth.uid() = user_id).');
+          }
+          throw trackErr;
+        }
+        toast({ title: 'Upload concluído.' });
+        if(onUploaded) onUploaded();
+        setAlbumName(''); setGenre(''); setCover(null); setFiles([]);
+        onOpenChange(false);
+        return;
+      }
+
+      // Upload de múltiplos arquivos (álbum)
+      // cria album
+      const albumPayload: TablesInsert<'albums'> = { name: albumName, genre: genre || null, cover_url: null, user_id: userId || null };
+      // Workaround de tipagem: codegen atual está inferindo 'never' para inserts; usar cast any
+      const { data: albumInsert, error: albumErr } = await (supabase.from('albums') as any).insert(albumPayload).select().single();
       if(albumErr) {
         // Intercepta erro de RLS com mensagem mais amigável
         const raw = JSON.stringify(albumErr);
@@ -95,7 +127,7 @@ export const UploadMusicModal: React.FC<UploadMusicModalProps> = ({ open, onOpen
         }
         throw albumErr;
       }
-  if(!albumInsert){ throw new Error('Falha ao criar álbum (sem retorno).'); }
+      if(!albumInsert){ throw new Error('Falha ao criar álbum (sem retorno).'); }
 
       // envia capa se houver
       let coverUrl: string | null = null;
@@ -149,11 +181,11 @@ create policy "albums-owner-update" on public.albums for update using (auth.uid(
       // envia arquivos de áudio ou pacotes
       const total = files.length;
       let current = 0;
-    for(const f of files){
+      for(const f of files){
         const path = `tracks/${albumInsert.id}/${Date.now()}-${f.name}`;
         try {
-      const signal = abortRef.current?.signal; // guarda referência segura
-      if(!signal){ throw new Error('Abort controller ausente'); }
+          const signal = abortRef.current?.signal; // guarda referência segura
+          if(!signal){ throw new Error('Abort controller ausente'); }
           const publicUrl = await uploadFileWithCancel(BUCKET, path, f, signal, accessToken);
           // garantir que albumInsert existe
           if(!albumInsert) throw new Error('Álbum não retornado da criação.');
@@ -188,12 +220,12 @@ create policy "albums-owner-update" on public.albums for update using (auth.uid(
         setProgress( 10 + Math.round((current/total)*90) );
       }
 
-  toast({ title: 'Upload concluído.' });
-  if(onUploaded) onUploaded();
+      toast({ title: 'Upload concluído.' });
+      if(onUploaded) onUploaded();
       setAlbumName(''); setGenre(''); setCover(null); setFiles([]);
       onOpenChange(false);
     } catch (err: unknown) {
-  if(import.meta.env.DEV){ console.warn('[UploadMusicModal] erro', err); }
+      if(import.meta.env.DEV){ console.warn('[UploadMusicModal] erro', err); }
       if(isAbortError(err)){
         setWasAborted(true);
         const albumId = (err as Partial<AbortLikeWithAlbum>).albumId;

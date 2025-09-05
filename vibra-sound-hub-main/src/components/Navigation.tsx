@@ -37,7 +37,7 @@ const Navigation = () => {
         ), description:'Transmissões e episódios em tempo real' },
     ];
     if(isAdmin){
-      base.push({ key:'admin-verif', label:'Verificações', icon:<ShieldCheck className="h-5 w-5"/>, description:'Gerencie solicitações de selo', onClick:()=>navigate('/admin-verifications') });
+      base.push({ key:'admin-verif', label:'Verificações', icon:<ShieldCheck className="h-5 w-5 text-[#4A0590]"/>, description:'Gerencie solicitações de selo', onClick:()=>navigate('/admin-verifications') });
     }
     return base;
   },[navigate, isAdmin]);

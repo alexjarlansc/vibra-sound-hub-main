@@ -1,4 +1,5 @@
-import { Search, Upload, LogIn, User, Bell, Menu, ChevronRight, Heart, Settings, LogOut, FileMusic, PlusSquare, User2, ListMusic, ShieldCheck } from "lucide-react";
+import { Search, Upload, LogIn, User, Bell, Menu, ChevronRight, Heart, Settings, LogOut, FileMusic, PlusSquare, User2, ListMusic, ShieldCheck, Crown } from "lucide-react";
+import { SelectFeaturedAlbumModal } from '@/components/SelectFeaturedAlbumModal';
 import GlobalSearchModal from '@/components/GlobalSearchModal';
 import { BRAND } from "@/config/branding";
 import { Button } from "@/components/ui/button";
@@ -19,16 +20,20 @@ const Header = () => {
   const [showLogin, setShowLogin] = useState(false);
   const [openUpload, setOpenUpload] = useState(false);
   const [openUserMenu, setOpenUserMenu] = useState(false);
+  const [showFeaturedModal, setShowFeaturedModal] = useState(false);
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
+  const [profileName, setProfileName] = useState<string|null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string|null>(user?.user_metadata?.avatar_url ?? null);
   useEffect(()=>{
     let canceled=false;
     (async()=>{
-      if(!userId){ setIsAdmin(false); return; }
+      if(!userId){ setIsAdmin(false); setIsVerified(false); return; }
       try {
-        const { data, error } = await (await import('@/integrations/supabase/client')).supabase.from('profiles').select('role').eq('id', userId).maybeSingle();
-        if(!canceled){ setIsAdmin(!error && (data as any)?.role === 'admin'); }
-      } catch { if(!canceled) setIsAdmin(false); }
+        const { data, error } = await (await import('@/integrations/supabase/client')).supabase.from('profiles').select('role,is_verified').eq('id', userId).maybeSingle();
+        if(!canceled){ setIsAdmin(!error && (data as any)?.role === 'admin'); setIsVerified(!error && Boolean((data as any)?.is_verified)); }
+      } catch { if(!canceled){ setIsAdmin(false); setIsVerified(false); } }
     })();
     return ()=>{ canceled=true; };
   },[userId]);
@@ -36,24 +41,74 @@ const Header = () => {
   const [openSettings, setOpenSettings] = useState(false);
 
   // Deriva nome amigável do usuário
+  // keeps profile name in sync with DB
+  useEffect(() => {
+    if (!userId) { setProfileName(null); return; }
+    let canceled = false;
+    (async () => {
+      try {
+        const { supabase } = await import('@/integrations/supabase/client');
+        const { data, error } = await supabase.from('profiles').select('username,avatar_url').eq('id', userId).maybeSingle();
+        // debug: log response to help diagnose why profiles.username isn't used
+        try { console.debug('[Header] profiles query', { userId, data, error }); } catch(e){}
+        if (!canceled) {
+          if (!error) {
+            setProfileName((data as any)?.username ?? null);
+            setAvatarUrl(((data as any)?.avatar_url) ?? (user?.user_metadata?.avatar_url ?? null));
+          } else {
+            setProfileName(null);
+            setAvatarUrl(user?.user_metadata?.avatar_url ?? null);
+          }
+        }
+      } catch (e) {
+        try { console.warn('[Header] profiles fetch failed', e); } catch(e){}
+      }
+    })();
+
+    const onUpdated = (e: any) => {
+      if (e?.detail?.userId === userId) {
+        (async () => {
+          try {
+            const { supabase } = await import('@/integrations/supabase/client');
+            const { data, error } = await supabase.from('profiles').select('username,avatar_url').eq('id', userId).maybeSingle();
+            try { console.debug('[Header] profile:updated event fetched', { userId, data, error }); } catch(e){}
+            setProfileName((data as any)?.username ?? null);
+            setAvatarUrl(((data as any)?.avatar_url) ?? (user?.user_metadata?.avatar_url ?? null));
+          } catch (e) { try{ console.warn('[Header] profile:updated handler failed', e); }catch(e){} }
+        })();
+      }
+    };
+
+    window.addEventListener('profile:updated', onUpdated as EventListener);
+    return () => { canceled = true; window.removeEventListener('profile:updated', onUpdated as EventListener); };
+  }, [userId, user?.user_metadata?.avatar_url]);
+
   const displayName = (() => {
-    if(!userId) return null;
+    if (!userId) return null;
+    // 1) prefer username from profiles table
+    if (profileName && typeof profileName === 'string' && profileName.trim()) {
+      const raw = profileName.trim();
+      const parts = raw.split(/\s+/).filter(Boolean);
+      if (parts.length > 1) return parts.slice(0, 2).map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+      return raw.charAt(0).toUpperCase() + raw.slice(1);
+    }
+    // 2) fallback to auth metadata
     const meta = user?.user_metadata || {};
     const raw = meta.full_name || meta.name || meta.user_name || meta.username || '';
-    const cleaned = raw.trim().replace(/\s+/g,' ').toLowerCase();
-    if(cleaned){
+    const cleaned = raw.trim().replace(/\s+/g, ' ');
+    if (cleaned) {
       const parts = cleaned.split(' ').filter(Boolean);
       const first = parts[0];
-      const last = parts.length>1 ? parts[parts.length-1] : '';
-      const format = (s:string)=> s ? s.charAt(0).toUpperCase()+s.slice(1) : '';
+      const last = parts.length > 1 ? parts[parts.length - 1] : '';
+      const format = (s: string) => s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
       return [format(first), format(last)].filter(Boolean).join(' ');
     }
-    if(userEmail){
-      const base = userEmail.split('@')[0].replace(/[._-]+/g,' ');
+    if (userEmail) {
+      const base = userEmail.split('@')[0].replace(/[._-]+/g, ' ');
       const parts = base.split(' ').filter(Boolean);
       const first = parts[0];
-      const last = parts.length>1 ? parts[parts.length-1] : '';
-      const format = (s:string)=> s ? s.charAt(0).toUpperCase()+s.slice(1) : '';
+      const last = parts.length > 1 ? parts[parts.length - 1] : '';
+      const format = (s: string) => s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
       return [format(first), format(last)].filter(Boolean).join(' ');
     }
     return 'Usuário';
@@ -137,17 +192,34 @@ const Header = () => {
               </Button>
             ) : null}
             <div className="hidden md:flex items-center space-x-2 pr-2 cursor-pointer select-none" onClick={()=> userId ? setOpenUserMenu(true) : setShowLogin(true)}>
-              <Avatar className="h-10 w-10 ring-1 ring-border">
-                {user?.user_metadata?.avatar_url && (
-                  <AvatarImage src={user.user_metadata.avatar_url} />
+              <Avatar className="h-10 w-10 ring-1 ring-border" aria-label={profileName ?? displayName}>
+                {avatarUrl ? (
+                  <AvatarImage src={avatarUrl} alt={profileName ?? displayName} />
+                ) : (
+                  user?.user_metadata?.avatar_url ? (
+                    <AvatarImage src={user.user_metadata.avatar_url} alt={profileName ?? displayName} />
+                  ) : (
+                    <AvatarFallback className="flex items-center justify-center">
+                      { (profileName ?? displayName) ? (
+                        <span className="text-[12px] font-medium">{String((profileName ?? displayName)).trim().split(/\s+/).map(s=>s[0]?.toUpperCase()).slice(0,2).join('')}</span>
+                      ) : (
+                        <User className="h-5 w-5 text-muted-foreground" />
+                      ) }
+                    </AvatarFallback>
+                  )
                 )}
-                <AvatarFallback className="flex items-center justify-center">
-                  <User className="h-5 w-5 text-muted-foreground" />
-                </AvatarFallback>
               </Avatar>
-              <div className="text-xs leading-tight max-w-[140px] truncate">
+              <div className="text-xs leading-tight max-w-[180px] truncate">
                 {userId ? (
-                  <p className="font-medium truncate">Olá, {displayName}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium truncate">Olá, {profileName ?? displayName}</p>
+                    <div className="flex items-center gap-1">
+                      {isVerified && (
+                        <img src="/Verified-alt-purple.svg" alt="Verificado" className="h-6 w-6" />
+                      )}
+                      {isAdmin && <Crown className="h-4 w-4 text-amber-500" />}
+                    </div>
+                  </div>
                 ) : (
                   <button
                     onClick={()=> setShowLogin(true)}
@@ -165,13 +237,13 @@ const Header = () => {
         </div>
       </div>
       <UploadMusicModal open={openUpload} onOpenChange={setOpenUpload} userId={userId} />
-      <LoginDialog open={showLogin} onOpenChange={setShowLogin} onSubmitEmail={async (email)=>{
-        try { await signInWithEmail(email); toast({ title: 'Link de login enviado (verifique seu email).' }); }
-        catch(err: unknown){
-          const msg = err instanceof Error ? err.message : 'Erro inesperado';
-          toast({ title: 'Erro login', description: msg, variant: 'destructive'});
-        }
-      }} />
+          <LoginDialog open={showLogin} onOpenChange={setShowLogin} onSubmitEmail={async (email)=>{
+            try { await signInWithEmail(email); toast({ title: 'Link de login enviado (verifique seu email).' }); }
+            catch(err: unknown){
+              const msg = err instanceof Error ? err.message : 'Erro inesperado';
+              toast({ title: 'Erro login', description: msg, variant: 'destructive'});
+            }
+          }} onSignedUp={setProfileName} />
       {/* Sheet menu do usuário */}
       <Sheet open={openUserMenu} onOpenChange={setOpenUserMenu}>
         <SheetContent side="right" className="p-0 flex flex-col">
@@ -238,10 +310,18 @@ const Header = () => {
                 <span>Verificações</span>
               </Button>
             )}
+            {isAdmin && (
+              <Button variant="ghost" size="sm" className="w-full justify-start gap-3 mb-2" onClick={()=>{ setShowFeaturedModal(true); setOpenUserMenu(false); }}>
+                <FileMusic className="w-4 h-4" />
+                <span>Selecionar álbum em destaque</span>
+              </Button>
+            )}
+            
             <Button variant="ghost" size="sm" className="w-full justify-start gap-3" onClick={()=>{ signOut(); setOpenUserMenu(false); }}>
               <LogOut className="w-4 h-4" />
               <span>Sair</span>
             </Button>
+            <SelectFeaturedAlbumModal open={showFeaturedModal} onClose={()=>setShowFeaturedModal(false)} userId={userId} />
           </div>
         </SheetContent>
       </Sheet>
@@ -256,12 +336,13 @@ export default Header;
 // Componente simples de login por e-mail magic link
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-interface LoginDialogProps { open: boolean; onOpenChange: (v:boolean)=>void; onSubmitEmail: (email:string)=>Promise<void>; }
-const LoginDialog: React.FC<LoginDialogProps> = ({ open, onOpenChange }) => {
+interface LoginDialogProps { open: boolean; onOpenChange: (v:boolean)=>void; onSubmitEmail: (email:string)=>Promise<void>; onSignedUp?: (name:string)=>void }
+const LoginDialog: React.FC<LoginDialogProps> = ({ open, onOpenChange, onSignedUp }) => {
   // Tabs agora apenas para senha e cadastro
   const [tab, setTab] = useState<'password'|'signup'>('password');
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -291,11 +372,38 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onOpenChange }) => {
   const signUp = async () => {
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signUp({ email, password });
+      // validação: nome completo obrigatório (nome e sobrenome)
+      if(!fullName || fullName.trim().split(/\s+/).length < 2){
+        toast({ title: 'Informe nome e sobrenome.', variant: 'destructive' });
+        setLoading(false); return;
+      }
+      // envia user_metadata.full_name para supabase auth
+      const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: fullName.trim() } } });
       if(error) throw error;
-  toast({ title: 'Verifique seu e-mail para confirmar.' });
-  // Após cadastro, direciona para aba de login por senha
-  setTab('password');
+  // optimistic UI: notify parent to display the signed-up name immediately while we await user id/upsert
+  try { onSignedUp?.(fullName.trim()); } catch(e) {}
+      // signUp may not create an active session; try to obtain the user id from the response or poll getUser()
+      (async ()=>{
+        try{
+          let userId = data?.user?.id ?? null;
+          // poll a few times in case the auth record is created asynchronously
+          const maxAttempts = 6;
+          let attempt = 0;
+          while(!userId && attempt < maxAttempts){
+            attempt += 1;
+            await new Promise(r => setTimeout(r, 800));
+            try { const r = await supabase.auth.getUser(); userId = r.data.user?.id ?? null; } catch(e){}
+          }
+          if(userId){
+            const { error: upserr } = await (supabase.from('profiles') as any).upsert([{ id: userId, username: fullName.trim(), email }], { onConflict: 'id' });
+            if(upserr){ console.warn('[Header] upsert profiles after signup failed:', upserr.message || upserr); }
+            else { try { window.dispatchEvent(new CustomEvent('profile:updated', { detail: { userId } })); } catch(e){} }
+          }
+        }catch(e){ /* não bloqueia */ }
+      })();
+      toast({ title: 'Verifique seu e-mail para confirmar.' });
+      // Após cadastro, direciona para aba de login por senha
+      setTab('password');
     } catch(err: unknown){
       const msg = err instanceof Error ? err.message : 'Erro cadastro';
       toast({ title: 'Erro cadastro', description: msg, variant: 'destructive'});
@@ -358,9 +466,10 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onOpenChange }) => {
           {tab==='signup' && (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">Crie uma conta para continuar.</p>
+              <input className="w-full border rounded-md px-3 py-2 text-sm bg-background" placeholder="Nome completo (obrigatório)" value={fullName} onChange={e=>setFullName(e.target.value)} />
               <input className="w-full border rounded-md px-3 py-2 text-sm bg-background" placeholder="voce@exemplo.com" value={email} onChange={e=>setEmail(e.target.value)} />
               <input type="password" className="w-full border rounded-md px-3 py-2 text-sm bg-background" placeholder="Senha (mín 6)" value={password} onChange={e=>setPassword(e.target.value)} />
-              <Button disabled={loading || !email || password.length<6} className="w-full" onClick={signUp}>{loading? 'Criando...':'Cadastrar'}</Button>
+              <Button disabled={loading || !email || password.length<6 || !fullName || fullName.trim().split(/\s+/).length<2} className="w-full" onClick={signUp}>{loading? 'Criando...':'Cadastrar'}</Button>
               <button onClick={()=>setTab('password')} className="text-xs text-primary hover:underline">Já tem conta? Entrar</button>
             </div>
           )}
