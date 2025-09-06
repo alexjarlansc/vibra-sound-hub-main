@@ -8,13 +8,30 @@ import { usePlayer } from '@/context/PlayerContext';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { usePlaylists } from '@/hooks/usePlaylists';
 
 const HeroSection = () => {
   const { play, toggle, current, playing, playQueue } = usePlayer();
   // Identificador da faixa demo da Home
   const demoId = 'hero_demo_track';
   const isCurrentDemo = current?.id === demoId;
-  const handleHeroPlay = () => {
+  const { create: createPlaylist } = usePlaylists();
+  const handleHeroPlay = async () => {
+    // se existe featuredAlbum, tocar o álbum
+    if(featuredAlbum?.id){
+      try{
+        const { data: tracks } = await supabase.from('tracks').select('id, filename, file_url, album_id').eq('album_id', featuredAlbum.id).order('created_at',{ ascending: true }) as any;
+        if(!tracks || !tracks.length){
+          // fallback para demo
+          if(isCurrentDemo){ toggle(); return; }
+          play({ id: demoId, title: 'Faixa Demo', artist: 'Nomix', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' }, { replaceQueue: true });
+          return;
+        }
+        const toPlay = (tracks as any[]).map((t:any)=> ({ id: t.id, title: t.filename?.replace(/\.[a-zA-Z0-9]+$/,''), url: t.file_url, albumId: t.album_id }));
+        playQueue(toPlay, 0);
+        return;
+      }catch(e){ /* fallback */ }
+    }
     if(isCurrentDemo){ toggle(); return; }
     play({ id: demoId, title: 'Faixa Demo', artist: 'Nomix', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' }, { replaceQueue: true });
   };
@@ -101,7 +118,11 @@ const HeroSection = () => {
                 )}
                 {isCurrentDemo && playing ? 'Pausar' : 'Começar a Ouvir'}
               </Button>
-              <Button size="lg" variant="outline" className="h-12 px-8 rounded-full border-primary/20 hover:bg-primary/5">
+              <Button size="lg" variant="outline" className="h-12 px-8 rounded-full border-primary/20 hover:bg-primary/5" onClick={async ()=>{
+                const name = window.prompt('Nome da nova playlist:');
+                if(!name) return;
+                try{ await createPlaylist({ name }); alert('Playlist criada.'); }catch(e:any){ alert('Erro ao criar playlist: '+(e?.message||String(e))); }
+              }}>
                 <Plus className="w-5 h-5 mr-2" />
                 Criar Playlist
               </Button>
