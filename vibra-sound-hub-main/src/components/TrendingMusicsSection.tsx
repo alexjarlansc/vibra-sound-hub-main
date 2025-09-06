@@ -12,8 +12,9 @@ import { useToast } from '@/hooks/use-toast';
 /* Componente para Músicas em Alta (Trending) */
 const TrendingMusicsSection = () => {
   const [openAll, setOpenAll] = useState(false);
-  const { data, loading, reload } = useTrendingMusics({ limit: 12 });
-  const { isLiked, toggleTrackLike } = useTrackFavorites();
+  // Busca sempre o Top 100 para garantir atualização e consistência
+  const { data, loading, reload } = useTrendingMusics({ limit: 100 });
+  const { isLiked, toggleTrackLike, counts } = useTrackFavorites();
   const { registerTrackPlay } = useRegisterPlay();
   const { toast } = useToast();
 
@@ -38,7 +39,8 @@ const TrendingMusicsSection = () => {
   },[]);
 
   type TopItem = { id?: string; title: string; artist: string; colorVariant: 1|2|3|4|5|6 };
-  const top12: TopItem[] = (data.length? data.map<TopItem>((t,i)=>({
+  // Top 12 para exibição rápida
+  const top12: TopItem[] = (data.length? data.slice(0,12).map<TopItem>((t,i)=>({
     id: t.id,
     title: t.name,
     artist: 'Artista',
@@ -46,7 +48,7 @@ const TrendingMusicsSection = () => {
   })) : fallback.slice(0,12).map<TopItem>((f,i)=>({ ...f, colorVariant: ((i%6)+1) as 1|2|3|4|5|6 })));
 
   const handlePlay = useCallback((trackId?:string)=>{ if(trackId){ registerTrackPlay(trackId); toast({ title: 'Reproduzindo (demo)' }); } },[registerTrackPlay, toast]);
-  const handleLike = useCallback((trackId?:string)=>{ if(trackId) toggleTrackLike(trackId); },[toggleTrackLike]);
+  const handleLike = useCallback((trackId?:string)=>{ console.debug('[TrendingMusicsSection] like clicked', trackId); if(trackId) toggleTrackLike(trackId); },[toggleTrackLike]);
 
   return (
     <div className="mt-16">
@@ -69,8 +71,9 @@ const TrendingMusicsSection = () => {
             artist={track.artist}
             colorVariant={track.colorVariant}
             size="medium"
-      liked={isLiked(track.id)}
-      onLike={()=> handleLike(track.id)}
+  liked={isLiked(track.id)}
+  onLike={()=> handleLike(track.id)}
+  likeCount={counts?.[String(track.id)]}
       onPlay={()=> handlePlay(track.id)}
           />
         ))}
@@ -85,15 +88,18 @@ const TrendingMusicsSection = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {(() => {
                 type Item = { id?: string; title: string; artist: string; colorVariant: 1|2|3|4|5|6 };
+                // Exibe sempre as 100 mais tocadas reais, fallback só se não houver dados
                 const full: Item[] = data.length
-                  ? (top12 as Item[]).concat(
-                      fallback.slice(top12.length, 100).map<Item>((f,i2)=>({
-                        ...f,
+                  ? data.slice(0,100).map<Item>((t,i2)=>(
+                      ({
+                        id: t.id,
+                        title: t.name,
+                        artist: 'Artista',
                         colorVariant: ((i2%6)+1) as 1|2|3|4|5|6
-                      }))
-                    )
+                      })
+                    ))
                   : fallback.map<Item>((f,i2)=>({ ...f, colorVariant: ((i2%6)+1) as 1|2|3|4|5|6 }));
-        return full.slice(0,100).map((t,i)=>(
+        return full.map((t,i)=>(
                   <MusicCard
                     key={t.id ?? i}
                     title={t.title}
@@ -102,6 +108,7 @@ const TrendingMusicsSection = () => {
                     size="small"
           liked={isLiked(t.id)}
           onLike={()=> handleLike(t.id)}
+          likeCount={counts?.[String(t.id)]}
                   />
                 ));
               })()}

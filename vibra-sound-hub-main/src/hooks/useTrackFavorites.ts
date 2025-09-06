@@ -68,6 +68,7 @@ export const useTrackFavorites = () => {
 
   const toggleTrackLike = useCallback(async (trackId:string): Promise<ToggleResult> => {
     if(!trackId) return { success:false, error:'trackId vazio' };
+  console.debug('[useTrackFavorites] toggleTrackLike called', trackId);
     if(!userId){ setError('Necessário login.'); return { success:false, error:'login' }; }
     // Snapshot para rollback
     const prev = likes;

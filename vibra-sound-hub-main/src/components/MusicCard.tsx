@@ -92,12 +92,12 @@ const MusicCard = ({ title, artist, image, colorVariant, size = "medium", onClic
                 size="sm"
                 variant="ghost"
                 disabled={disableActions}
-                onClick={(e)=>{ e.stopPropagation(); onLike?.(); }}
-                className={`rounded-full w-10 h-10 p-0 transition ${liked ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-inner' : 'text-white hover:bg-white/20'}`}
+                onClick={(e)=>{ e.stopPropagation(); console.debug('[MusicCard] like button clicked', { id: (typeof (title)==='string'? title: undefined) }); onLike?.(); }}
+                className={`rounded-full w-10 h-10 p-0 transition ${liked ? 'bg-violet-600 text-white hover:bg-violet-700 shadow-inner' : 'text-white hover:bg-white/20'}`}
                 aria-label="Curtir"
               >
                 <div className="flex flex-col items-center justify-center leading-none">
-                  <Heart className={`h-4 w-4 transition-transform ${liked ? 'fill-current scale-110' : ''}`} />
+                  <Heart className={`h-4 w-4 transition-transform ${liked ? 'scale-110' : ''}`} fill={liked ? 'currentColor' : 'none'} />
                   {typeof likeCount === 'number' && <span className="text-[10px] mt-0.5 font-medium">{likeCount}</span>}
                 </div>
               </Button>
