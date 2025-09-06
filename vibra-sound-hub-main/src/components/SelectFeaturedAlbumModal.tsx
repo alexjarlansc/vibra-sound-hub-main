@@ -40,7 +40,13 @@ export const SelectFeaturedAlbumModal: React.FC<Props> = ({ open, onClose, userI
       onSelected?.(album);
       onClose();
     } else {
-      alert('Erro ao salvar destaque: ' + error.message);
+      // detectar schema-missing e orientar o usuário
+      const msg = error?.message || String(error);
+      if(msg.toLowerCase().includes('featured_album_id') || msg.toLowerCase().includes('could not find')){
+        alert('Erro ao salvar destaque: coluna `featured_album_id` ausente no banco. Rode a migration `supabase/migrations/202509060900_add_featured_album_to_profiles.sql` via Supabase SQL editor ou `supabase db push`.');
+      } else {
+        alert('Erro ao salvar destaque: ' + msg);
+      }
     }
   }
 
