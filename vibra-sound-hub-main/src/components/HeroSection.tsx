@@ -8,6 +8,7 @@ import { usePlayer } from '@/context/PlayerContext';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { usePlaylists } from '@/hooks/usePlaylists';
 
@@ -16,6 +17,7 @@ const HeroSection = () => {
   // Identificador da faixa demo da Home
   // não usamos mais demo audio
   const { create: createPlaylist } = usePlaylists();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const handleHeroPlay = async () => {
     if(!featuredAlbum?.id){ toast({ title: 'Nenhum álbum em destaque', description: 'Nenhum álbum disponível para tocar.' }); return; }
@@ -112,11 +114,7 @@ const HeroSection = () => {
                 )}
                 {playing ? 'Pausar' : 'Começar a Ouvir'}
               </Button>
-              <Button size="lg" variant="outline" className="h-12 px-8 rounded-full border-primary/20 hover:bg-primary/5" onClick={async ()=>{
-                const name = window.prompt('Nome da nova playlist:');
-                if(!name) return;
-                try{ await createPlaylist({ name }); alert('Playlist criada.'); }catch(e:any){ alert('Erro ao criar playlist: '+(e?.message||String(e))); }
-              }}>
+              <Button size="lg" variant="outline" className="h-12 px-8 rounded-full border-primary/20 hover:bg-primary/5" onClick={()=> navigate('/playlists', { state: { openCreate: true } }) }>
                 <Plus className="w-5 h-5 mr-2" />
                 Criar Playlist
               </Button>

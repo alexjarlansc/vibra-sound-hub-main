@@ -1,4 +1,5 @@
 import PageShell from '@/components/PageShell';
+import { useLocation } from 'react-router-dom';
 import { usePlaylists, usePlaylistTracks } from '@/hooks/usePlaylists';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +9,9 @@ const PlaylistsPage = () => {
   const { data, loading, error, create, remove, update } = usePlaylists();
   const [name, setName] = useState('');
   const [desc, setDesc] = useState('');
-  const [openCreate, setOpenCreate] = useState(false);
+  const location = useLocation();
+  const initialOpenCreate = !!(location && (location as any).state && (location as any).state.openCreate);
+  const [openCreate, setOpenCreate] = useState(initialOpenCreate);
   const [editing, setEditing] = useState<string|null>(null);
   const [editName, setEditName] = useState('');
   const [editDesc, setEditDesc] = useState('');
@@ -77,7 +80,7 @@ export default PlaylistsPage;
 // Gerenciador simples de faixas (inline)
 import { useTrendingTracks } from '@/hooks/useTrendingTracks';
 
-const PlaylistTracksManager: React.FC<{ playlistId:string; onClose:()=>void }> = ({ playlistId, onClose }) => {
+const PlaylistTracksManager = ({ playlistId, onClose }: { playlistId:string; onClose:()=>void }) => {
   const { data, loading, addTrack, removeTrack, moveTrack } = usePlaylistTracks(playlistId);
   const { data: trending } = useTrendingTracks({ limit: 20 });
   return (
