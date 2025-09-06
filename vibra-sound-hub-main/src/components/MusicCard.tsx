@@ -46,17 +46,17 @@ const MusicCard = ({ title, artist, image, colorVariant, size = "medium", onClic
             {typeof downloadsCount === 'number' && <span className="px-2 py-0.5 rounded-full bg-black/50 backdrop-blur text-white/90">⬇ {downloadsCount}</span>}
           </div>
           {image ? (
-            <img
-              src={image}
-              alt={title}
-              loading="lazy"
-              decoding="async"
-              width={400}
-              height={400}
-              onError={(e)=>{ e.currentTarget.style.opacity='0'; e.currentTarget.parentElement?.classList.add('bg-muted'); }}
-              className="w-full h-full object-cover transition-opacity duration-300"
-            />
-          ) : (
+              <img
+                src={image}
+                alt={title}
+                loading="lazy"
+                decoding="async"
+                width={400}
+                height={400}
+                onError={(e)=>{ e.currentTarget.style.display='none'; e.currentTarget.parentElement?.classList.add('bg-muted'); }}
+                className="w-full h-full object-cover transition-opacity duration-300 bg-muted"
+              />
+            ) : (
             <div className={`w-full h-full bg-music-card-${colorVariant} flex items-center justify-center relative`}>
               <div className="absolute inset-0 bg-gradient-to-br from-transparent via-white/5 to-black/20"></div>
               <div className="text-white text-center p-6 relative z-10">

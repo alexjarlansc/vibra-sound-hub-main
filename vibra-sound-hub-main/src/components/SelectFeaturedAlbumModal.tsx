@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 interface Props {
   open: boolean;
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export const SelectFeaturedAlbumModal: React.FC<Props> = ({ open, onClose, userId, onSelected }) => {
+  const { toast } = useToast();
   const [albums, setAlbums] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -20,6 +22,17 @@ export const SelectFeaturedAlbumModal: React.FC<Props> = ({ open, onClose, userI
     if (!open) return;
     setLoading(true);
     (async () => {
+      // carregar o featured_album_id atual do perfil para pré-selecionar
+      try {
+        const { data: profile } = await supabase.from('profiles').select('featured_album_id').eq('id', userId).single();
+        const p: any = profile as any;
+        if (p && p.featured_album_id) {
+          setSelected(String(p.featured_album_id));
+        }
+      } catch (e) {
+        // ignore
+      }
+
       let query = supabase.from('albums').select('id, name, cover_url').order('created_at', { ascending: false });
       if (search.trim()) {
         query = query.ilike('name', `%${search.trim()}%`);
@@ -33,13 +46,18 @@ export const SelectFeaturedAlbumModal: React.FC<Props> = ({ open, onClose, userI
   async function handleSave() {
     if (!selected) return;
     setSaving(true);
-  const { error } = await (supabase.from('profiles') as any).update({ featured_album_id: selected } as any).eq('id', userId);
+  const res = await (supabase.from('profiles') as any).update({ featured_album_id: selected } as any).eq('id', userId);
     setSaving(false);
+    console.debug('[SelectFeaturedAlbumModal] update result:', res);
+    const error = (res as any)?.error ?? null;
     if (!error) {
       const album = albums.find(a => a.id === selected);
+      try{ toast({ title: 'Destaque salvo', description: album?.name ?? selected, }); } catch(e){}
       onSelected?.(album);
+      try { window.dispatchEvent(new CustomEvent('profile:updated', { detail: { userId } })); } catch(e) {}
       onClose();
     } else {
+      try{ toast({ title: 'Falha ao salvar destaque', description: String(error?.message || error), variant: 'destructive' }); }catch(e){}
       // detectar schema-missing e orientar o usuário
       const msg = error?.message || String(error);
       if(msg.toLowerCase().includes('featured_album_id') || msg.toLowerCase().includes('could not find')){
