@@ -8,32 +8,26 @@ import { usePlayer } from '@/context/PlayerContext';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 import { usePlaylists } from '@/hooks/usePlaylists';
 
 const HeroSection = () => {
   const { play, toggle, current, playing, playQueue } = usePlayer();
   // Identificador da faixa demo da Home
-  const demoId = 'hero_demo_track';
-  const isCurrentDemo = current?.id === demoId;
+  // não usamos mais demo audio
   const { create: createPlaylist } = usePlaylists();
+  const { toast } = useToast();
   const handleHeroPlay = async () => {
-    // se existe featuredAlbum, tocar o álbum
-    if(featuredAlbum?.id){
-      try{
-        const { data: tracks } = await supabase.from('tracks').select('id, filename, file_url, album_id').eq('album_id', featuredAlbum.id).order('created_at',{ ascending: true }) as any;
-        if(!tracks || !tracks.length){
-          // fallback para demo
-          if(isCurrentDemo){ toggle(); return; }
-          play({ id: demoId, title: 'Faixa Demo', artist: 'Nomix', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' }, { replaceQueue: true });
-          return;
-        }
-        const toPlay = (tracks as any[]).map((t:any)=> ({ id: t.id, title: t.filename?.replace(/\.[a-zA-Z0-9]+$/,''), url: t.file_url, albumId: t.album_id }));
-        playQueue(toPlay, 0);
-        return;
-      }catch(e){ /* fallback */ }
-    }
-    if(isCurrentDemo){ toggle(); return; }
-    play({ id: demoId, title: 'Faixa Demo', artist: 'Nomix', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' }, { replaceQueue: true });
+    if(!featuredAlbum?.id){ toast({ title: 'Nenhum álbum em destaque', description: 'Nenhum álbum disponível para tocar.' }); return; }
+    setLoadingTracks(true);
+    try{
+      const { data: tracks } = await supabase.from('tracks').select('id, filename, file_url, album_id').eq('album_id', featuredAlbum.id).order('created_at',{ ascending: true }) as any;
+      const list = tracks || [];
+      if(!list.length){ toast({ title: 'Álbum sem faixas', description: 'O álbum em destaque não possui faixas.' }); return; }
+      const toPlay = list.map((t:any)=> ({ id: t.id, title: t.filename?.replace(/\.[a-zA-Z0-9]+$/,''), url: t.file_url, albumId: t.album_id }));
+      playQueue(toPlay, 0);
+    }catch(e:any){ toast({ title: 'Erro ao tocar álbum', description: e?.message || String(e), variant: 'destructive' }); }
+    finally { setLoadingTracks(false); }
   };
   const { userId } = useAuth();
   // Album em destaque (dinâmico) — prioriza destaque do usuário logado
@@ -109,14 +103,14 @@ const HeroSection = () => {
                 size="lg"
                 onClick={handleHeroPlay}
                 className="bg-gradient-primary hover:opacity-90 h-12 px-8 rounded-full flex items-center"
-                aria-label={isCurrentDemo && playing ? 'Pausar' : 'Tocar'}
+                aria-label={playing ? 'Pausar' : 'Tocar'}
               >
-                {isCurrentDemo && playing ? (
+                {playing ? (
                   <Pause className="w-5 h-5 mr-2" />
                 ) : (
                   <Play className="w-5 h-5 mr-2 fill-current" />
                 )}
-                {isCurrentDemo && playing ? 'Pausar' : 'Começar a Ouvir'}
+                {playing ? 'Pausar' : 'Começar a Ouvir'}
               </Button>
               <Button size="lg" variant="outline" className="h-12 px-8 rounded-full border-primary/20 hover:bg-primary/5" onClick={async ()=>{
                 const name = window.prompt('Nome da nova playlist:');
