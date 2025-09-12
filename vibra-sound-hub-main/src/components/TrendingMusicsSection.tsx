@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import MusicCard from '@/components/MusicCard';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Music2 } from 'lucide-react';
@@ -9,9 +9,20 @@ import { useTrackFavorites } from '@/hooks/useTrackFavorites';
 import { useRegisterPlay } from '@/hooks/useRegisterPlay';
 import { useToast } from '@/hooks/use-toast';
 
+export interface TrendingMusicsSectionProps {
+  /** Se fornecido, controla o estado do Dialog (Top 100) externamente */
+  externalOpen?: boolean;
+  onExternalOpenChange?: (open: boolean) => void;
+}
+
 /* Componente para Músicas em Alta (Trending) */
-const TrendingMusicsSection = () => {
-  const [openAll, setOpenAll] = useState(false);
+const TrendingMusicsSection: React.FC<TrendingMusicsSectionProps> = ({ externalOpen, onExternalOpenChange }) => {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const openAll = typeof externalOpen === 'boolean' ? externalOpen : internalOpen;
+  const setOpenAll = (v: boolean) => {
+    if(typeof onExternalOpenChange === 'function') onExternalOpenChange(v);
+    else setInternalOpen(v);
+  };
   // Busca sempre o Top 100 para garantir atualização e consistência
   const { data, loading, reload } = useTrendingMusics({ limit: 100 });
   const { isLiked, toggleTrackLike, counts } = useTrackFavorites();
