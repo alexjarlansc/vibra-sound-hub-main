@@ -5,16 +5,15 @@ import { describe, it, expect, vi } from 'vitest';
 
 if (typeof globalThis.document === 'undefined') {
   const dom = new JSDOM('<!doctype html><html><body></body></html>');
-  // @ts-expect-error test helper
-  (globalThis as any).window = dom.window;
-  // @ts-expect-error test helper
-  (globalThis as any).document = dom.window.document;
+  (globalThis as unknown as { window?: Window }).window = dom.window;
+  (globalThis as unknown as { document?: Document }).document = dom.window.document;
 }
 
-// Reuse same mocks as primary test: mock TrendingMusicsSection
+type MockProps = { onExternalOpenChange?: (v: boolean) => void; externalOpen?: boolean };
+
 vi.mock('@/components/TrendingMusicsSection', () => ({
   __esModule: true,
-  default: (props: any) => (
+  default: (props: MockProps) => (
     <div>
       <button data-testid="internal-open" onClick={() => props.onExternalOpenChange?.(true)}>internal-open</button>
       {props.externalOpen ? <div role="dialog" data-testid="top100">Top 100 Modal</div> : null}
@@ -23,10 +22,9 @@ vi.mock('@/components/TrendingMusicsSection', () => ({
 }));
 
 vi.mock('@/components/CtaSection', () => ({ default: () => <div data-testid="cta" /> }));
-vi.mock('@/components/fallbacks/SectionSkeleton', () => ({ default: (p: any) => <div data-testid="skeleton" style={{ height: p?.height || 100 }} /> }));
-vi.mock('@/components/TrendingProfilesSection', () => ({ default: () => <div data-testid="trending-profiles" /> }));
-vi.mock('@/components/ui/button', () => ({ Button: (props: any) => <button {...props}>{props.children}</button> }));
-vi.mock('@/hooks/useTrendingProfiles', () => ({ useTrendingProfiles: () => ({ data: [], loading: false }) }));
+
+type BtnProps = React.ComponentProps<'button'> & { children?: React.ReactNode };
+vi.mock('@/components/ui/button', () => ({ Button: (props: BtnProps) => <button {...props}>{props.children}</button> }));
 
 describe('Index integration', () => {
   it('internal-open button triggers modal via prop', async () => {
