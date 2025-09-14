@@ -3,6 +3,8 @@ import { useTrackFavorites } from '@/hooks/useTrackFavorites';
 import { useRegisterPlay } from '@/hooks/useRegisterPlay';
 import { useToast } from '@/hooks/use-toast';
 import MusicCard from '@/components/MusicCard';
+import Top100Modal from '@/components/Top100Modal';
+import { useState } from 'react';
 import PageShell from '@/components/PageShell';
 
 const TopMusics = () => {
@@ -18,10 +20,13 @@ const TopMusics = () => {
     artist: 'Artista'
   }));
   const list = (trendingTracks.length ? trendingTracks : fallback).slice(0, 100) as { id:string; name:string; artist:string }[];
+  const [openTop100, setOpenTop100] = useState(false);
 
   return (
+    <>
     <PageShell title="Top 100 Músicas" subtitle="Ranking baseado em plays (1x), likes (3x) e downloads (2x).">
       <div className="panel p-6">
+          <div className="flex justify-end mb-4"><button className="btn btn-outline" onClick={()=> setOpenTop100(true)}>Ver Top 100 músicas</button></div>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
       {list.map((item, i) => (
             <MusicCard
@@ -39,6 +44,8 @@ const TopMusics = () => {
         </div>
       </div>
     </PageShell>
+    <Top100Modal open={openTop100} onOpenChange={(o)=> setOpenTop100(o)} />
+    </>
   );
 };
 

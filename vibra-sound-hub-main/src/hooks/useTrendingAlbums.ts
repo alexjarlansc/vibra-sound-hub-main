@@ -23,6 +23,17 @@ export function useTrendingAlbums(options: Options = {}) {
       .order('score', { ascending: false })
       .limit(limit);
     if(!viewError && rows && rows.length){
+      // tentar enriquecer com username do dono do álbum se houver user_id
+      try{
+        const raw = rows as any[];
+        const ownerIds = Array.from(new Set(raw.map(r=> r.user_id).filter(Boolean)));
+        if(ownerIds.length){
+          const { data: owners } = await supabase.from('profiles').select('id, username').in('id', ownerIds) as any;
+          const map = ((owners||[]) as any[]).reduce((acc:any, o:any)=> { acc[o.id] = o.username; return acc; }, {} as Record<string,string>);
+          const enriched = raw.map(r=> ({ ...r, artist: map[String(r.user_id)] || '' }));
+          setData(enriched as TrendingAlbum[]); setLoading(false); return;
+        }
+      }catch(e){ /* ignore owner enrichment errors */ }
       setData(rows as TrendingAlbum[]); setLoading(false); return;
     }
     // 2) fallback simples: pegar últimos álbuns criados
@@ -32,7 +43,9 @@ export function useTrendingAlbums(options: Options = {}) {
       .order('created_at', { ascending: false })
       .limit(limit);
     if(albumsErr){ setError(viewError?.message || albumsErr.message); setLoading(false); return; }
-  const coerced: TrendingAlbum[] = ((albums as any) || []).map((a:any, i:number)=>({
+    const rawAlbums = ((albums as any) || []);
+    // enriquecer com username dos donos se possível
+    let coerced: any[] = rawAlbums.map((a:any, i:number)=>({
       id: a.id,
       name: a.name,
       genre: a.genre,
@@ -43,8 +56,16 @@ export function useTrendingAlbums(options: Options = {}) {
       downloads_count: 0,
       likes_count: 0,
       score: 0 - i
-  }));
-    setData(coerced);
+    }));
+    try{
+      const ownerIds = Array.from(new Set(coerced.map(a=> a.user_id).filter(Boolean)));
+      if(ownerIds.length){
+        const { data: owners } = await supabase.from('profiles').select('id, username').in('id', ownerIds) as any;
+        const map = ((owners||[]) as any[]).reduce((acc:any, o:any)=> { acc[o.id] = o.username; return acc; }, {} as Record<string,string>);
+        coerced = coerced.map(a=> ({ ...a, artist: map[String(a.user_id)] || '' }));
+      }
+    }catch(e){ /* ignore */ }
+    setData(coerced as TrendingAlbum[]);
     setLoading(false);
   },[limit]);
 

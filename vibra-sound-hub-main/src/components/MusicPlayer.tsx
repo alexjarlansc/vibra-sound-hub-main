@@ -58,11 +58,7 @@ const MusicPlayer = () => {
     <div className="fixed bottom-0 inset-x-0 z-50 select-none">
       <div className="relative border-t bg-background/90 backdrop-blur-xl border-border/50 shadow-[0_-4px_18px_-4px_rgba(0,0,0,0.35)]">
         <div className="mx-auto w-full max-w-7xl px-4 md:px-8 py-3 md:py-4 flex flex-col gap-1">
-          {/* Barra de progresso (buffer + progresso) */}
-          <div className="h-1.5 w-full rounded-full bg-muted/60 relative overflow-hidden group cursor-pointer" aria-label="Linha de progresso">
-            <div className="absolute inset-y-0 left-0 bg-muted-foreground/30" style={{ width: `${bufPct}%` }} />
-            <div className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary to-primary/70" style={{ width: `${pct}%` }} />
-          </div>
+          {/* Top progress bar removed as requested */}
           <div className="flex items-center gap-4 w-full">
             {/* Info + capa real */}
             <div className="flex items-center gap-3 min-w-0 flex-1">

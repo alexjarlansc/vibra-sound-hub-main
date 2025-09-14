@@ -43,8 +43,18 @@ export const useFavoriteAlbums = () => {
         if(albumErr) throw albumErr;
         if(!mountedRef.current) return;
         const albums = (albumsRaw || []) as Album[];
+        // enriquecer com username do dono do álbum (artist) quando possível
+        const ownerIds = Array.from(new Set(albums.map(a=> a.user_id).filter(Boolean)));
+        let ownersMap: Record<string,string> = {};
+        try{
+          if(ownerIds.length){
+            const { data: owners } = await supabase.from('profiles').select('id,username').in('id', ownerIds) as any;
+            (owners||[]).forEach((o:any)=> { ownersMap[o.id] = o.username; });
+          }
+        }catch(e){ /* ignore */ }
         const map: Record<string, FavoriteAlbumMerged['album']> = {};
-        albums.forEach(a => { map[a.id] = a; });
+        albums.forEach(a => { map[a.id] = { ...a, // @ts-ignore adding artist
+          artist: ownersMap[String(a.user_id)] || '' } as any; });
         setAlbumsMap(map);
       } else {
         setAlbumsMap({});

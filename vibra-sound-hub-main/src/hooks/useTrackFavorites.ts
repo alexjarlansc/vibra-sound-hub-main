@@ -47,7 +47,20 @@ export const useTrackFavorites = () => {
       } else {
         setTracks({});
       }
-    } catch(e:any){ if(mountedRef.current) setError(e.message || 'Erro ao carregar favoritos'); }
+    } catch(e:any){
+      const msg = e?.message || 'Erro ao carregar favoritos';
+      // Detect missing table/schema errors from Postgres/Supabase
+      if(typeof msg === 'string' && (msg.includes("Could not find the table") || msg.includes('relation "track_likes" does not exist') || (msg.includes('does not exist') && msg.includes('track_likes')))){
+        if(mountedRef.current){
+          setError('Tabela `track_likes` ausente no banco. Aplique a migração em supabase/migrations/202509041700_track_likes.sql');
+          // ensure UI stays stable (no likes)
+          setLikes([]);
+          setTracks({});
+        }
+      } else {
+        if(mountedRef.current) setError(msg);
+      }
+    }
     finally {
       loadingRef.current = false;
       if(mountedRef.current) setLoading(false);
@@ -94,6 +107,11 @@ export const useTrackFavorites = () => {
       // Rollback
       setLikes(prev);
       const msg = e?.message || 'Erro ao alternar favorito';
+      // detect missing table error and return a machine-friendly code
+      if(typeof msg === 'string' && (msg.includes("Could not find the table") || msg.includes('relation "track_likes" does not exist') || (msg.includes('does not exist') && msg.includes('track_likes')))){
+        setError('Tabela `track_likes` ausente no banco. Aplique a migração em supabase/migrations/202509041700_track_likes.sql');
+        return { success:false, error: 'missing_table' };
+      }
       setError(msg);
       return { success:false, error: msg };
     }
