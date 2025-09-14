@@ -42,12 +42,47 @@ export function useTrendingProfiles(options: Options = {}) {
 
   const load = useCallback(async ()=>{
     setLoading(true); setError(null);
-    const { data: rows, error } = await supabase
-      .from('profile_trending_view')
-      .select('*')
-      .order('score', { ascending: false })
-      .limit(limit);
-    if(!error && rows){ setData(rows as TrendingProfile[]); setLoading(false); return; }
+    // Try to read from the view first; prefer ordering by plays_count so ranking changes with plays
+    try{
+      const { data: rows, error } = await supabase
+        .from('profile_trending_view')
+        .select('*')
+        .order('plays_count', { ascending: false })
+        .limit(limit);
+      if(!error && rows && (rows as any).length){
+        // ensure numeric fields and default to 0
+        const coerced = (rows as any).map((r:any)=> ({
+          id: r.id,
+          username: r.username || 'Artista',
+          avatar_url: r.avatar_url ?? null,
+          created_at: r.created_at || new Date().toISOString(),
+          plays_count: Number(r.plays_count) || 0,
+          likes_count: Number(r.likes_count) || 0,
+          downloads_count: Number(r.downloads_count) || 0,
+          score: Number(r.score) || 0
+        })) as TrendingProfile[];
+        // if fewer than limit, we'll try to append additional real profiles with 0 plays
+        if(coerced.length < limit){
+          const missing = limit - coerced.length;
+          const { data: more } = await supabase.from('profiles').select('id, username, avatar_url, created_at').order('created_at',{ ascending: false }).limit(missing) as any;
+          const moreCoerced = ((more||[]) as any[]).filter((p:any)=> !coerced.find(c=> c.id === p.id)).map((p:any)=> ({ id: p.id, username: p.username || 'Artista', avatar_url: p.avatar_url ?? null, created_at: p.created_at || new Date().toISOString(), plays_count: 0, likes_count: 0, downloads_count: 0, score: 0 }));
+          setData([...coerced, ...moreCoerced].slice(0, limit));
+        } else {
+          setData(coerced.slice(0, limit));
+        }
+        setLoading(false);
+        return;
+      }
+    }catch(err){ /* ignore and fallback below */ }
+
+    // If view is not available or returned nothing, fetch profiles and sort by plays (fallback: zero)
+    try{
+      const { data: profiles } = await supabase.from('profiles').select('id, username, avatar_url, created_at').order('created_at',{ ascending:false }).limit(limit) as any;
+      const coerced = ((profiles||[]) as any[]).map((p:any)=> ({ id: p.id, username: p.username || 'Artista', avatar_url: p.avatar_url ?? null, created_at: p.created_at || new Date().toISOString(), plays_count: 0, likes_count:0, downloads_count:0, score:0 })) as TrendingProfile[];
+      setData(coerced.slice(0, limit));
+      setLoading(false);
+      return;
+    }catch(e){ /* final fallback to fake */ }
 
     // fallback fake
     const fake: TrendingProfile[] = Array.from({length:limit}, (_,i)=>({
