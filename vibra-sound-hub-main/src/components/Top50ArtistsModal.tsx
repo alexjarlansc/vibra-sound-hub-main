@@ -23,16 +23,18 @@ export default function Top50ArtistsModal({ open, onOpenChange }: { open: boolea
             <div key={p.id || idx} className="flex items-center justify-between gap-3 p-2 rounded hover:bg-muted/40 cursor-pointer" onClick={()=> navigate(`/perfil/${p.id}`)}>
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <img src={p.avatar_url || '/placeholder.svg'} alt={p.username || 'Artista'} className="w-12 h-12 rounded-full object-cover" />
-                  {/* position badge (small) */}
-                  <span className="absolute -top-2 -left-2 text-[10px] bg-white/10 text-white rounded-full w-6 h-6 flex items-center justify-center font-semibold">{idx+1}</span>
-                  <div className="absolute -bottom-1 -right-1 flex items-center gap-1">
+                  <div className="rounded-full p-1 bg-green-500">
+                    <img src={p.avatar_url || '/placeholder.svg'} alt={p.username || 'Artista'} className="w-10 h-10 rounded-full object-cover ring-2 ring-white shadow-sm" />
+                  </div>
+                  {/* purple rank badge */}
+                  <span className="absolute -top-2 -right-2 text-xs bg-violet-100 text-violet-700 rounded-full w-6 h-6 flex items-center justify-center font-semibold">{idx+1}</span>
+                  <div className="absolute -bottom-1 -left-1 flex items-center gap-1">
                     {p.is_verified && (
                       <img src="/Verified-alt-purple.svg" alt="Verificado" title="Verificado" className="h-4 w-4 object-contain" />
                     )}
                     {p.role === 'admin' && (
-                      <span className="bg-white/90 rounded-full p-0.5 flex items-center justify-center">
-                        <Crown className="h-3 w-3 text-amber-500" />
+                      <span className="bg-amber-400 rounded-full p-0.5 flex items-center justify-center">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 8l4 2 3-4 3 4 3-4 3 4 4-2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8z" fill="#F59E0B"/></svg>
                       </span>
                     )}
                   </div>

@@ -108,12 +108,14 @@ export default function TopMusicTemplate(){
             <div key={a.id || idx} className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  {/* avatar */}
-                  <img src={a.avatar_url || '/placeholder.svg'} alt={a.name} className="w-12 h-12 rounded-full object-cover" />
-                  {/* small left badge for index */}
-                  <span className="absolute -top-2 -left-2 text-[10px] bg-white/90 text-black rounded-full w-6 h-6 flex items-center justify-center font-semibold">{idx+1}</span>
+                  {/* green outer ring with white bordered avatar inside */}
+                  <div className="rounded-full p-1 bg-green-500">
+                    <img src={a.avatar_url || '/placeholder.svg'} alt={a.name} className="w-10 h-10 rounded-full object-cover ring-2 ring-white shadow-sm" />
+                  </div>
+                  {/* small purple rank circle on the right */}
+                  <span className="absolute -top-2 -right-2 text-xs bg-violet-100 text-violet-700 rounded-full w-6 h-6 flex items-center justify-center font-semibold">{idx+1}</span>
                   {/* badges: verified (blue) and admin (yellow) */}
-                  <div className="absolute -bottom-1 -right-1 flex items-center gap-1">
+                  <div className="absolute -bottom-1 -left-1 flex items-center gap-1">
                     {a.is_verified && (
                       <img src="/Verified-alt-purple.svg" alt="Verificado" className="h-4 w-4 object-contain" />
                     )}
