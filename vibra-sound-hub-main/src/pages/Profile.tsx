@@ -2,6 +2,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useMemo, useState, useEffect } from 'react';
+import { usePlayer } from '@/context/PlayerContext';
+import { downloadAlbumAsZip } from '@/lib/downloadAlbumZip';
+import { useToast } from '@/hooks/use-toast';
 import { useSearchParams } from 'react-router-dom';
 import { useFollow } from '@/hooks/useFollow';
 import ProfileAvatar from '@/components/ProfileAvatar';
@@ -45,7 +48,14 @@ const Profile = () => {
     return raw.charAt(0).toUpperCase()+raw.slice(1);
   },[profileInfo?.username, profileInfo?.email, user?.user_metadata, user?.email, userEmail]);
 
-  const stats: Stats = { plays: 0, uploads: 0, downloads: 0, followers: 0, following: 0 };
+  const [stats, setStats] = useState<Stats>({ plays: 0, uploads: 0, downloads: 0, followers: 0, following: 0 });
+  const [loadingStats, setLoadingStats] = useState(false);
+
+  const player = usePlayer();
+  const { toast } = useToast();
+  const [recentSingles, setRecentSingles] = useState<Array<any>>([]);
+  const [recentAlbums, setRecentAlbums] = useState<Array<any>>([]);
+  const [loadingRecent, setLoadingRecent] = useState(false);
 
   // Follow hook: usado para visualização de perfis públicos
   const { isFollowing, followers, following, loading: followLoading, follow, unfollow } = useFollow(viewedProfileId ?? '', user?.id ?? null);
@@ -55,7 +65,7 @@ const Profile = () => {
     if(!viewedProfileId) return;
     let canceled = false;
     (async()=>{
-      try {
+      try{
         setProfileLoading(true);
         const { data, error } = await supabase.from('profiles').select('role,is_verified,username,email,avatar_url').eq('id', viewedProfileId).maybeSingle();
         if(!canceled){
@@ -67,8 +77,60 @@ const Profile = () => {
         }
       } finally { if(!canceled) setProfileLoading(false); }
     })();
+
+    // load recent uploads (tracks and albums) for the viewed profile
+    (async()=>{
+      if(!viewedProfileId) return;
+      setLoadingRecent(true);
+      try{
+        const { data: tracksData } = await supabase.from('tracks').select('id, filename as name, file_url, created_at').eq('user_id', viewedProfileId).is('album_id', null).order('created_at', { ascending:false }).limit(10) as any;
+        const { data: albumsData } = await supabase.from('albums').select('id, name, cover_url, created_at').eq('user_id', viewedProfileId).order('created_at', { ascending:false }).limit(10) as any;
+        if(canceled) return;
+        const singles = ((tracksData as any)||[]).map((t:any)=> ({ id: t.id, name: t.name, created_at: t.created_at, type:'track' as const, file_url: t.file_url }));
+        const albums = ((albumsData as any)||[]).map((a:any)=> ({ id: a.id, name: a.name, created_at: a.created_at, cover_url: a.cover_url, type:'album' as const }));
+        setRecentSingles(singles.slice(0,6));
+        setRecentAlbums(albums.slice(0,6));
+      }catch(e){ console.error('[Profile] erro ao carregar uploads recentes', e); }
+      finally{ if(!canceled) setLoadingRecent(false); }
+    })();
+
     return ()=>{ canceled = true; };
   },[viewedProfileId, user?.user_metadata?.avatar_url]);
+
+  // load numeric stats (plays, uploads, downloads) and include followers/following
+  useEffect(()=>{
+    if(!viewedProfileId) return;
+    let canceled = false;
+    (async()=>{
+      setLoadingStats(true);
+      try{
+        async function safeCount(table: string){
+          try{
+            const res = await supabase.from(table as any).select('id', { count: 'exact', head: true }).eq('user_id', viewedProfileId);
+            const count = (res && (res as any).count) || 0;
+            return count;
+          }catch(err){ console.warn('[Profile] safeCount error', table, err); return 0; }
+        }
+
+        const [tracksC, albumsC, downloadsC, playsC] = await Promise.all([
+          safeCount('tracks'),
+          safeCount('albums'),
+          safeCount('album_downloads'),
+          safeCount('track_plays'),
+        ]);
+        if(canceled) return;
+        const uploads = (tracksC || 0) + (albumsC || 0);
+        setStats(s=> ({ ...s, uploads, downloads: downloadsC || 0, plays: playsC || 0 }));
+      }catch(e){ console.error('[Profile] erro ao carregar stats', e); }
+      finally{ if(!canceled) setLoadingStats(false); }
+    })();
+    return ()=>{ canceled = true; };
+  },[viewedProfileId]);
+
+  // keep followers/following in sync into stats
+  useEffect(()=>{
+    setStats(s=> ({ ...s, followers: typeof followers === 'number' ? followers : s.followers, following: typeof following === 'number' ? following : s.following }));
+  },[followers, following]);
 
   return (
     <div className="min-h-screen">
@@ -135,10 +197,49 @@ const Profile = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
           <div className="space-y-6 lg:col-span-2">
             {/* Lista itens (placeholder) */}
-            <div className="panel p-6 mt-8 lg:mt-12">
-              <h2 className="font-semibold mb-4">Uploads Recentes</h2>
-              <p className="text-sm text-muted-foreground">Nada para mostrar ainda.</p>
-            </div>
+                <div className="panel p-6 mt-8 lg:mt-12">
+                  <h2 className="font-semibold mb-4">Uploads Recentes</h2>
+                  {loadingRecent && <div className="text-sm text-muted-foreground">Carregando...</div>}
+                  {!loadingRecent && !recentSingles.length && !recentAlbums.length && (
+                    <p className="text-sm text-muted-foreground">Nada para mostrar ainda.</p>
+                  )}
+
+                  {!loadingRecent && (recentAlbums.length || recentSingles.length) && (
+                    <div className="space-y-3">
+                      {recentAlbums.map((a)=> (
+                        <div key={a.id} className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <img src={a.cover_url || '/placeholder.svg'} alt={`${a.name} capa`} className="w-14 h-14 rounded-md object-cover" />
+                            <div>
+                              <div className="font-medium">{a.name}</div>
+                              <div className="text-xs text-muted-foreground">Álbum • {new Date(a.created_at).toLocaleString()}</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button className="text-sm text-primary" onClick={async ()=>{ try{ await downloadAlbumAsZip(a.id); toast({ title:'Download iniciado (ZIP)' }); }catch(e:any){ toast({ title:'Erro no ZIP', description: e.message, variant:'destructive' }); } }}>Download</button>
+                            <button className="text-sm text-muted-foreground" onClick={async ()=>{ try{ const { data: tracks } = await supabase.from('tracks').select('id, filename, file_url').eq('album_id', a.id).order('created_at',{ ascending:true }) as any; if(tracks && tracks.length){ player.playQueue(tracks.map((t:any)=> ({ id: t.id, title: t.filename, url: t.file_url, albumId: a.id })), 0); } else { toast({ title:'Álbum sem faixas', variant:'destructive' }); } }catch(e:any){ toast({ title:'Erro ao tocar álbum', description: e.message, variant:'destructive' }); } }}>Ouvir</button>
+                          </div>
+                        </div>
+                      ))}
+
+                      {recentSingles.map((t)=> (
+                        <div key={t.id} className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <img src={t.cover_url || '/placeholder.svg'} alt={`${t.name} capa`} className="w-14 h-14 rounded-md object-cover" />
+                            <div>
+                              <div className="font-medium">{t.name}</div>
+                              <div className="text-xs text-muted-foreground">Single • {new Date(t.created_at).toLocaleString()}</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button className="text-sm text-primary" onClick={async ()=>{ if(!t.file_url){ toast({ title:'URL não disponível', variant:'destructive' }); return; } try{ const res = await fetch(t.file_url); if(!res.ok) throw new Error('HTTP '+res.status); const blob = await res.blob(); const a = document.createElement('a'); const url = URL.createObjectURL(blob); a.href = url; a.download = t.name.endsWith('.mp3')? t.name : t.name + '.mp3'; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 3000); }catch(e:any){ toast({ title:'Erro ao baixar', description: e.message, variant:'destructive' }); } }}>Download</button>
+                            <button className="text-sm text-muted-foreground" onClick={()=>{ if(!t.file_url){ toast({ title:'URL não disponível', variant:'destructive' }); return; } player.play({ id: t.id, title: t.name, url: t.file_url, albumId: null }, { replaceQueue:false }); }}>Ouvir</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
           </div>
           <aside className="space-y-6 -mt-20 lg:-mt-40">
             <div className="panel pt-0 pb-6 px-6">
