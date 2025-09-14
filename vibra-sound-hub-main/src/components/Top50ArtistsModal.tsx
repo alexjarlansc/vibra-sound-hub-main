@@ -3,6 +3,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useTrendingProfiles } from '@/hooks/useTrendingProfiles';
 import { useNavigate } from 'react-router-dom';
+import { Crown } from 'lucide-react';
 
 export default function Top50ArtistsModal({ open, onOpenChange }: { open: boolean; onOpenChange: (o:boolean)=>void }){
   const { data: profiles = [], loading } = useTrendingProfiles({ limit: 50 });
@@ -23,7 +24,18 @@ export default function Top50ArtistsModal({ open, onOpenChange }: { open: boolea
               <div className="flex items-center gap-3">
                 <div className="relative">
                   <img src={p.avatar_url || '/placeholder.svg'} alt={p.username || 'Artista'} className="w-12 h-12 rounded-full object-cover" />
-                  <span className="absolute -bottom-1 -right-2 text-[10px] bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center font-semibold">{idx+1}</span>
+                  {/* position badge (small) */}
+                  <span className="absolute -top-2 -left-2 text-[10px] bg-white/10 text-white rounded-full w-6 h-6 flex items-center justify-center font-semibold">{idx+1}</span>
+                  <div className="absolute -bottom-1 -right-1 flex items-center gap-1">
+                    {p.is_verified && (
+                      <img src="/Verified-alt-purple.svg" alt="Verificado" title="Verificado" className="h-4 w-4 object-contain" />
+                    )}
+                    {p.role === 'admin' && (
+                      <span className="bg-white/90 rounded-full p-0.5 flex items-center justify-center">
+                        <Crown className="h-3 w-3 text-amber-500" />
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <div className="font-medium flex items-center gap-2">
