@@ -21,10 +21,18 @@ export default function Top50ArtistsModal({ open, onOpenChange }: { open: boolea
           {profiles.map((p:any, idx:number)=> (
             <div key={p.id || idx} className="flex items-center justify-between gap-3 p-2 rounded hover:bg-muted/40 cursor-pointer" onClick={()=> navigate(`/perfil/${p.id}`)}>
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white font-semibold">{idx+1}</div>
+                <div className="relative">
+                  <img src={p.avatar_url || '/placeholder.svg'} alt={p.username || 'Artista'} className="w-12 h-12 rounded-full object-cover" />
+                  <span className="absolute -bottom-1 -right-2 text-[10px] bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center font-semibold">{idx+1}</span>
+                </div>
                 <div>
-                  <div className="font-medium">{p.username || p.name}</div>
-                  <div className="text-xs text-muted-foreground">{p.plays_count ? `${p.plays_count.toLocaleString()} plays` : ''}</div>
+                  <div className="font-medium flex items-center gap-2">
+                    <span>{p.username || p.name}</span>
+                    {(p.is_verified || p.isVerified) && (
+                      <img src="/Verified-alt-purple.svg" alt="Verificado" title="Verificado" className="h-4 w-4 object-contain" />
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground">{p.plays_count ? `${p.plays_count.toLocaleString()} plays` : '0 plays'}</div>
                 </div>
               </div>
               <div className="text-xs text-muted-foreground">Perfil</div>
