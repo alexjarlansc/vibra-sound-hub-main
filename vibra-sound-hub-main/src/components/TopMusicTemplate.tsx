@@ -110,7 +110,7 @@ export default function TopMusicTemplate(){
                 <div className="relative">
                   {/* green outer ring with white bordered avatar inside */}
                   <div className="rounded-full p-1 bg-green-500">
-                    <img src={a.avatar_url || '/placeholder.svg'} alt={a.name} className="w-10 h-10 rounded-full object-cover ring-2 ring-white shadow-sm" />
+                    <img src={a.avatar_url || (import.meta.env.DEV ? '/logo-nomix.svg' : '/placeholder.svg')} alt={a.name} className="w-10 h-10 rounded-full object-cover ring-2 ring-white shadow-sm" />
                   </div>
                   {/* small purple rank circle on the right */}
                   <span className="absolute -top-2 -right-2 text-xs bg-violet-100 text-violet-700 rounded-full w-6 h-6 flex items-center justify-center font-semibold">{idx+1}</span>

@@ -24,7 +24,7 @@ export default function Top50ArtistsModal({ open, onOpenChange }: { open: boolea
               <div className="flex items-center gap-3">
                 <div className="relative">
                   <div className="rounded-full p-1 bg-green-500">
-                    <img src={p.avatar_url || '/placeholder.svg'} alt={p.username || 'Artista'} className="w-10 h-10 rounded-full object-cover ring-2 ring-white shadow-sm" />
+                    <img src={p.avatar_url || (import.meta.env.DEV ? '/logo-nomix.svg' : '/placeholder.svg')} alt={p.username || 'Artista'} className="w-10 h-10 rounded-full object-cover ring-2 ring-white shadow-sm" />
                   </div>
                   {/* purple rank badge */}
                   <span className="absolute -top-2 -right-2 text-xs bg-violet-100 text-violet-700 rounded-full w-6 h-6 flex items-center justify-center font-semibold">{idx+1}</span>
