@@ -8,7 +8,7 @@ import Top100Modal from '@/components/Top100Modal';
 import Top50ArtistsModal from '@/components/Top50ArtistsModal';
 
 type Item = { title: string; artist?: string; id?: string; url?: string; album_id?: string | null };
-type Artist = { name: string; id?: string };
+type Artist = { name: string; id?: string; avatar_url?: string | null; is_verified?: boolean; role?: string };
 
 export default function TopMusicTemplate(){
   const { data: trendingTracks = [], loading: loadingTracks } = useTrendingTracks({ limit: 10 });
@@ -51,7 +51,7 @@ export default function TopMusicTemplate(){
   };
 
   const displayTracks: Item[] = trendingTracks.length ? trendingTracks.map(t=>({ id: t.id, title: t.name, artist: undefined, album_id: t.album_id })) : [];
-  const displayArtists: Artist[] = trendingProfiles.length ? trendingProfiles.map(p=>({ id: p.id, name: p.username })) : [];
+  const displayArtists: Artist[] = trendingProfiles.length ? trendingProfiles.map(p=>({ id: p.id, name: p.username, avatar_url: p.avatar_url ?? null, is_verified: Boolean(p.is_verified || p.isVerified), role: p.role || undefined })) : [];
 
   return (
     <div className="bg-card/90 rounded-lg p-6 shadow-sm">
@@ -109,17 +109,15 @@ export default function TopMusicTemplate(){
               <div className="flex items-center gap-3">
                 <div className="relative">
                   {/* avatar */}
-                  <img src={(trendingProfiles[idx] && trendingProfiles[idx].avatar_url) || '/placeholder.svg'} alt={a.name} className="w-12 h-12 rounded-full object-cover" />
+                  <img src={a.avatar_url || '/placeholder.svg'} alt={a.name} className="w-12 h-12 rounded-full object-cover" />
                   {/* small left badge for index */}
                   <span className="absolute -top-2 -left-2 text-[10px] bg-white/90 text-black rounded-full w-6 h-6 flex items-center justify-center font-semibold">{idx+1}</span>
                   {/* badges: verified (blue) and admin (yellow) */}
                   <div className="absolute -bottom-1 -right-1 flex items-center gap-1">
-                    {/* verified blue stripe */}
-                    {trendingProfiles[idx] && (trendingProfiles[idx].is_verified || trendingProfiles[idx].isVerified) && (
+                    {a.is_verified && (
                       <img src="/Verified-alt-purple.svg" alt="Verificado" className="h-4 w-4 object-contain" />
                     )}
-                    {/* admin crown */}
-                    {trendingProfiles[idx] && trendingProfiles[idx].role === 'admin' && (
+                    {a.role === 'admin' && (
                       <span className="bg-amber-400 rounded-full p-0.5 flex items-center justify-center">
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 8l4 2 3-4 3 4 3-4 3 4 4-2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8z" fill="#F59E0B"/></svg>
                       </span>
