@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 export interface TrendingProfile {
   id: string; username: string; avatar_url: string | null; created_at: string;
   plays_count: number; likes_count: number; downloads_count: number; score: number;
+  is_verified?: boolean; role?: string;
 }
 
 interface Options { limit?: number }
@@ -66,7 +67,9 @@ export function useTrendingProfiles(options: Options = {}) {
           plays_count: Number(r.plays_count) || 0,
           likes_count: Number(r.likes_count) || 0,
           downloads_count: Number(r.downloads_count) || 0,
-          score: Number(r.score) || 0
+          score: Number(r.score) || 0,
+          is_verified: Boolean(r.is_verified || r.isVerified),
+          role: r.role || null
         })) as TrendingProfile[];
         // filter to only profiles that own at least one album
         const filtered = albumOwners.length ? coerced.filter(c=> albumOwners.includes(c.id)) : coerced.filter(c=> false);
@@ -77,7 +80,7 @@ export function useTrendingProfiles(options: Options = {}) {
             const remainingIds = albumOwners.filter(id=> !filtered.find(f=> f.id === id)).slice(0, missing);
             if(remainingIds.length){
               const { data: more } = await supabase.from('profiles').select('id, username, avatar_url, created_at').in('id', remainingIds) as any;
-              const moreCoerced = ((more||[]) as any[]).map((p:any)=> ({ id: p.id, username: p.username || 'Artista', avatar_url: p.avatar_url ?? null, created_at: p.created_at || new Date().toISOString(), plays_count: 0, likes_count: 0, downloads_count: 0, score: 0 }));
+              const moreCoerced = ((more||[]) as any[]).map((p:any)=> ({ id: p.id, username: p.username || 'Artista', avatar_url: p.avatar_url ?? null, created_at: p.created_at || new Date().toISOString(), plays_count: 0, likes_count: 0, downloads_count: 0, score: 0, is_verified: Boolean(p.is_verified || p.isVerified), role: p.role || null }));
               setData([...filtered, ...moreCoerced].slice(0, limit));
             } else {
               setData(filtered.slice(0, limit));
@@ -99,7 +102,7 @@ export function useTrendingProfiles(options: Options = {}) {
       if(albumOwners.length){
         const ids = albumOwners.slice(0, limit);
         const { data: profiles } = await supabase.from('profiles').select('id, username, avatar_url, created_at').in('id', ids) as any;
-        const coerced = ((profiles||[]) as any[]).map((p:any)=> ({ id: p.id, username: p.username || 'Artista', avatar_url: p.avatar_url ?? null, created_at: p.created_at || new Date().toISOString(), plays_count: 0, likes_count:0, downloads_count:0, score:0 })) as TrendingProfile[];
+  const coerced = ((profiles||[]) as any[]).map((p:any)=> ({ id: p.id, username: p.username || 'Artista', avatar_url: p.avatar_url ?? null, created_at: p.created_at || new Date().toISOString(), plays_count: 0, likes_count:0, downloads_count:0, score:0, is_verified: Boolean(p.is_verified || p.isVerified), role: p.role || null })) as TrendingProfile[];
         setData(coerced.slice(0, limit));
         setLoading(false);
         return;
