@@ -107,14 +107,32 @@ export default function TopMusicTemplate(){
           {displayArtists.map((a, idx)=> (
             <div key={a.id || idx} className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white font-semibold">{idx+1}</div>
+                <div className="relative">
+                  {/* avatar */}
+                  <img src={(trendingProfiles[idx] && trendingProfiles[idx].avatar_url) || '/placeholder.svg'} alt={a.name} className="w-12 h-12 rounded-full object-cover" />
+                  {/* small left badge for index */}
+                  <span className="absolute -top-2 -left-2 text-[10px] bg-white/90 text-black rounded-full w-6 h-6 flex items-center justify-center font-semibold">{idx+1}</span>
+                  {/* badges: verified (blue) and admin (yellow) */}
+                  <div className="absolute -bottom-1 -right-1 flex items-center gap-1">
+                    {/* verified blue stripe */}
+                    {trendingProfiles[idx] && (trendingProfiles[idx].is_verified || trendingProfiles[idx].isVerified) && (
+                      <img src="/Verified-alt-purple.svg" alt="Verificado" className="h-4 w-4 object-contain" />
+                    )}
+                    {/* admin crown */}
+                    {trendingProfiles[idx] && trendingProfiles[idx].role === 'admin' && (
+                      <span className="bg-amber-400 rounded-full p-0.5 flex items-center justify-center">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 8l4 2 3-4 3 4 3-4 3 4 4-2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8z" fill="#F59E0B"/></svg>
+                      </span>
+                    )}
+                  </div>
+                </div>
                 <div>
                   <div className="font-semibold text-foreground">{a.name}</div>
                   <div className="text-xs text-muted-foreground">{(200000 - idx*20000).toLocaleString()} plays</div>
                 </div>
               </div>
               <div className="hidden md:block"> 
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">{idx+1}</div>
+                <div className="w-8 h-8 rounded-full bg-white/90 flex items-center justify-center text-muted-foreground font-semibold border">{idx+1}</div>
               </div>
             </div>
           ))}
