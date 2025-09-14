@@ -104,18 +104,31 @@ export default function TopMusicTemplate(){
         </div>
 
         <div className="space-y-4">
+          {import.meta.env.DEV && console.debug && console.debug('[TopMusicTemplate] displayArtists', displayArtists)}
+          {/* Dev-only visible debug to help verify avatar_url is present on the page */}
+          {import.meta.env.DEV && displayArtists.length > 0 && (
+            <div className="mt-2 p-2 bg-yellow-50 text-xs text-muted-foreground rounded">
+              <div className="font-medium">DEV DEBUG: artistas carregados</div>
+              {displayArtists.map((d, i)=> (
+                <div key={d.id || i} className="truncate">{i+1}. {d.name} — avatar_url: <span className="text-emerald-700">{String(d.avatar_url)}</span></div>
+              ))}
+            </div>
+          )}
           {displayArtists.map((a, idx)=> (
             <div key={a.id || idx} className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="relative">
                   {/* green outer ring with white bordered avatar inside */}
-                  <div className="rounded-full p-1 bg-green-500">
-                    <img src={a.avatar_url || (import.meta.env.DEV ? '/logo-nomix.svg' : '/placeholder.svg')} alt={a.name} className="w-10 h-10 rounded-full object-cover ring-2 ring-white shadow-sm" />
+                  <div className="rounded-full p-[3px] bg-transparent" style={{ boxShadow: '0 0 0 3px rgba(34,197,94,0.15), 0 0 0 6px white' }}>
+                    <img src={a.avatar_url || '/placeholder.svg'} alt={a.name} className="w-10 h-10 rounded-full object-cover ring-2 ring-white shadow-sm" />
                   </div>
                   {/* small purple rank circle on the right */}
                   <span className="absolute -top-2 -right-2 text-xs bg-violet-100 text-violet-700 rounded-full w-6 h-6 flex items-center justify-center font-semibold">{idx+1}</span>
-                  {/* badges: verified (blue) and admin (yellow) */}
-                  <div className="absolute -bottom-1 -left-1 flex items-center gap-1">
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <div className="font-semibold text-foreground">{a.name}</div>
+                    {/* badges inline next to the name */}
                     {a.is_verified && (
                       <img src="/Verified-alt-purple.svg" alt="Verificado" className="h-4 w-4 object-contain" />
                     )}
@@ -125,9 +138,6 @@ export default function TopMusicTemplate(){
                       </span>
                     )}
                   </div>
-                </div>
-                <div>
-                  <div className="font-semibold text-foreground">{a.name}</div>
                   <div className="text-xs text-muted-foreground">{(200000 - idx*20000).toLocaleString()} plays</div>
                 </div>
               </div>

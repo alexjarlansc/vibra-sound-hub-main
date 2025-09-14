@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Camera, Loader2, X, Upload as UploadIcon } from 'lucide-react';
@@ -36,6 +36,14 @@ export const ProfileAvatar: React.FC<ProfileAvatarProps> = ({ url, fallback, siz
       const publicUrl = data.publicUrl;
       const { error: updErr } = await supabase.auth.updateUser({ data: { avatar_url: publicUrl } });
       if(updErr) throw updErr;
+      // Also persist avatar_url to the profiles table so queries that read from profiles (views/hooks) see it
+      try{
+        if(userId){
+          const { error: pErr } = await supabase.from('profiles').update({ avatar_url: publicUrl } as any).eq('id', userId);
+          if(pErr) console.warn('[ProfileAvatar] failed to update profiles.avatar_url', pErr);
+        }
+      }catch(pe){ console.warn('[ProfileAvatar] profiles update exception', pe); }
+      if(import.meta.env.DEV){ try{ console.debug('[ProfileAvatar] uploaded avatar publicUrl', publicUrl); }catch(e){} }
       // re-fetch user para persistir em futuras páginas
       await supabase.auth.getUser();
       window.dispatchEvent(new CustomEvent('avatar-updated', { detail: { url: publicUrl }}));
@@ -96,6 +104,13 @@ export const ProfileAvatar: React.FC<ProfileAvatarProps> = ({ url, fallback, siz
       setUploading(true);
       const { error } = await supabase.auth.updateUser({ data: { avatar_url: null } });
       if(error) throw error;
+      // also clear from profiles table
+      try{
+        if(userId){
+          const { error: pErr } = await supabase.from('profiles').update({ avatar_url: null } as any).eq('id', userId);
+          if(pErr) console.warn('[ProfileAvatar] failed to clear profiles.avatar_url', pErr);
+        }
+      }catch(pe){ console.warn('[ProfileAvatar] profiles clear exception', pe); }
       await supabase.auth.getUser();
       window.dispatchEvent(new CustomEvent('avatar-updated', { detail: { url: null }}));
       toast({ title: 'Avatar removido.' });

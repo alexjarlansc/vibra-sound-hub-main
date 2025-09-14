@@ -71,7 +71,7 @@ export function useTrendingProfiles(options: Options = {}) {
           is_verified: Boolean(r.is_verified || r.isVerified),
           role: r.role || null
         })) as TrendingProfile[];
-        // filter to only profiles that own at least one album
+  // filter to only profiles that own at least one album
         const filtered = albumOwners.length ? coerced.filter(c=> albumOwners.includes(c.id)) : coerced.filter(c=> false);
         // if fewer than limit, append additional real album owners
         if(filtered.length < limit){
@@ -92,6 +92,9 @@ export function useTrendingProfiles(options: Options = {}) {
         } else {
           setData(filtered.slice(0, limit));
         }
+        if(import.meta.env.DEV){
+          try{ console.debug('[useTrendingProfiles] loaded from view, filtered:', filtered); }catch(e){}
+        }
         setLoading(false);
         return;
       }
@@ -103,6 +106,7 @@ export function useTrendingProfiles(options: Options = {}) {
         const ids = albumOwners.slice(0, limit);
         const { data: profiles } = await supabase.from('profiles').select('id, username, avatar_url, created_at').in('id', ids) as any;
   const coerced = ((profiles||[]) as any[]).map((p:any)=> ({ id: p.id, username: p.username || 'Artista', avatar_url: p.avatar_url ?? null, created_at: p.created_at || new Date().toISOString(), plays_count: 0, likes_count:0, downloads_count:0, score:0, is_verified: Boolean(p.is_verified || p.isVerified), role: p.role || null })) as TrendingProfile[];
+        if(import.meta.env.DEV){ try{ console.debug('[useTrendingProfiles] loaded profiles fallback:', coerced); }catch(e){} }
         setData(coerced.slice(0, limit));
         setLoading(false);
         return;
