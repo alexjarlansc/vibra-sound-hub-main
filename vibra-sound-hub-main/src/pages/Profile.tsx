@@ -119,7 +119,8 @@ const Profile = () => {
           safeCount('track_plays'),
         ]);
         if(canceled) return;
-        const uploads = (tracksC || 0) + (albumsC || 0);
+        // uploads agora conta apenas álbuns (não inclui faixas individuais)
+        const uploads = (albumsC || 0);
         setStats(s=> ({ ...s, uploads, downloads: downloadsC || 0, plays: playsC || 0 }));
       }catch(e){ console.error('[Profile] erro ao carregar stats', e); }
       finally{ if(!canceled) setLoadingStats(false); }
